@@ -1,26 +1,268 @@
 @import "tailwindcss";
 
+/* TalentBridge design tokens (PRD §3). Light, institutional, flat. */
+@theme {
+  --color-canvas: #f4f6f5;
+  --color-surface: #ffffff;
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
+  --color-ink: #0e1a16;
+  --color-ink-2: #1e293b;
+  --color-muted: #475569;
+  --color-subtle: #64748b;
+  --color-faint: #94a3b8;
+
+  --color-cobalt: #00785c; /* interaction accent = brand emerald */
+  --color-cobalt-strong: #005f49;
+  --color-cobalt-wash: #e4f5ee;
+
+  /* Status: dot/fill uses the brand hue, text uses the deeper step for AA contrast */
+  --color-avail: #10b981;
+  --color-avail-bg: #ecfdf5;
+  --color-avail-ink: #047857;
+  --color-notice: #f59e0b;
+  --color-notice-bg: #fef3c7;
+  --color-notice-ink: #92400e;
+  --color-placed: #64748b;
+  --color-placed-bg: #f1f5f9;
+  --color-placed-ink: #475569;
+  --color-flag: #ef4444;
+  --color-flag-bg: #fef2f2;
+  --color-flag-ink: #b91c1c;
+
+  /* Company site: evergreen stage + verified emerald brand */
+  --color-night: #071a14;
+  --color-night-2: #0c261e;
+  --color-night-3: #123328;
+  --color-night-line: #1b3a30;
+  --color-sky: #2ee6a8;
+  --color-brand: #00785c;
+  --color-brand-strong: #005f49;
+  --color-brand-bright: #2ee6a8;
+  --color-brand-wash: #e4f5ee;
+  --color-sun: #ffc247;
+  --color-sun-wash: #fff4d9;
+  --color-coral: #c4441f;
+  --color-coral-wash: #fdeae4;
+  --color-paper: #f4f6f5;
+
+  /* Product accents (identity only, never status) */
+  --color-acc-cobalt: #2563eb;
+  --color-acc-cobalt-bg: #eaf1ff;
+  --color-acc-violet: #6d3ae0;
+  --color-acc-violet-bg: #f1ebff;
+  --color-acc-sky: #0373b8;
+  --color-acc-sky-bg: #e6f4fd;
+  --color-acc-teal: #0e7c72;
+  --color-acc-teal-bg: #e3f6f3;
+  --color-acc-indigo: #4338ca;
+  --color-acc-indigo-bg: #ecebfd;
+  --color-acc-cyan: #0b7489;
+  --color-acc-cyan-bg: #e2f5f8;
+  --color-acc-plum: #9b2c7a;
+  --color-acc-plum-bg: #fbeaf5;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  --radius-ctl: 6px;
+  --radius-panel: 10px;
+  --radius-sheet: 14px;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-canvas);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers everywhere line up: rates, dates, IDs, counters */
+.tnum,
+table,
+[data-tnum] {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-cobalt);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: #b8ecd8;
+  color: var(--color-ink);
+}
+
+/* Blueprint grid used only in hero and empty states (PRD §3.2) */
+.blueprint {
+  background-color: var(--color-surface);
+  background-image:
+    linear-gradient(to right, rgb(37 99 235 / 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(37 99 235 / 0.09) 1px, transparent 1px),
+    linear-gradient(to right, rgb(15 23 42 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(15 23 42 / 0.035) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  background-position: -1px -1px;
+}
+
+.blueprint-dark {
+  background-color: var(--color-ink);
+  background-image:
+    linear-gradient(to right, rgb(148 163 184 / 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(148 163 184 / 0.1) 1px, transparent 1px),
+    linear-gradient(to right, rgb(148 163 184 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(148 163 184 / 0.04) 1px, transparent 1px);
+  background-size: 96px 96px, 96px 96px, 24px 24px, 24px 24px;
+}
+
+/* Themed scrollbars: thin, rounded, quiet until hovered */
+html {
+  scrollbar-color: #b7c4bf transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c9d3cf;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #93a59e;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #c9d3cf transparent;
+}
+/* Horizontal chip strips scroll without a visible bar */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+/* On the evergreen rail */
+.scroll-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.14) transparent;
+}
+.scroll-dark::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.14);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Ledger tick when a discipline count changes */
+@keyframes ledger-flash {
+  0% { background-color: rgb(16 185 129 / 0.18); }
+  100% { background-color: transparent; }
+}
+.ledger-flash {
+  animation: ledger-flash 1.6s ease-out;
+}
+
+@keyframes sheet-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dialog-in {
+  from { transform: translateY(8px) scale(0.99); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.anim-sheet { animation: sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.anim-fade { animation: fade-in 160ms ease-out; }
+.anim-dialog { animation: dialog-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* Scroll reveal: one gentle rise, applied per section, not per element */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 700ms cubic-bezier(0.2, 0.7, 0.2, 1), transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.reveal[data-shown="true"] { opacity: 1; transform: none; }
+.reveal-stagger > * { opacity: 0; transform: translateY(14px); transition: opacity 600ms ease, transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.reveal-stagger[data-shown="true"] > * { opacity: 1; transform: none; }
+.reveal-stagger[data-shown="true"] > *:nth-child(2) { transition-delay: 80ms; }
+.reveal-stagger[data-shown="true"] > *:nth-child(3) { transition-delay: 160ms; }
+.reveal-stagger[data-shown="true"] > *:nth-child(4) { transition-delay: 240ms; }
+.reveal-stagger[data-shown="true"] > *:nth-child(5) { transition-delay: 320ms; }
+.reveal-stagger[data-shown="true"] > *:nth-child(6) { transition-delay: 400ms; }
+
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee { animation: marquee 38s linear infinite; }
+.marquee-wrap:hover .marquee { animation-play-state: paused; }
+
+@keyframes caret { 50% { opacity: 0; } }
+.caret { animation: caret 1s steps(1) infinite; }
+
+@keyframes slide-in-right { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+.anim-row { animation: slide-in-right 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes token-pop { 0% { opacity: 0; transform: translateY(6px) scale(0.92); } 100% { opacity: 1; transform: none; } }
+.anim-token { animation: token-pop 360ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes stamp { 0% { opacity: 0; transform: scale(1.35) rotate(-8deg); } 60% { opacity: 1; transform: scale(0.96) rotate(-4deg); } 100% { opacity: 1; transform: scale(1) rotate(-4deg); } }
+.anim-stamp { animation: stamp 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.anim-progress { transform-origin: left; animation: progress linear both; }
+
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+.anim-float { animation: float-y 6s ease-in-out infinite; }
+
+/* Hero slideshow: slow cinematic push-in on the active photo */
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.08); } }
+.hero-kenburns { animation: kenburns 9s ease-out both; }
+
+/* Hero backdrop */
+@keyframes orb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, 40px) scale(1.08); }
+  66% { transform: translate(-40px, 30px) scale(0.95); }
+}
+.hero-orb { animation: orb-drift 22s ease-in-out infinite; }
+.hero-orb-2 { animation-duration: 28s; animation-direction: reverse; }
+.hero-orb-3 { animation-duration: 25s; animation-delay: -8s; }
+@keyframes signal { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+.hero-signal { animation: signal 3.2s linear infinite; }
+@keyframes node-pulse { 0%, 100% { opacity: 0; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.4); } }
+.hero-node { transform-box: fill-box; transform-origin: center; animation: node-pulse 4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-orb, .hero-signal, .hero-node, .hero-kenburns { animation: none; }
+  .reveal, .reveal-stagger > * { opacity: 1 !important; transform: none !important; }
+  .marquee { animation: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
 }
