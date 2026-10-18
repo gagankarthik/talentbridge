@@ -1,31 +1,31 @@
 import Link from "next/link";
+import { EnvelopeSimple, Phone } from "@phosphor-icons/react/dist/ssr";
 import { CONTACT } from "@/lib/company";
-import { IconMail, IconPhone, LogoMark } from "@/components/icons";
 import { CookiePrefsButton } from "@/features/site/cookie-notice";
 import { Logo } from "./logo";
 import { SITE_NAV } from "./site-nav";
 
-/** Full-width close: brand and contact, the three ways in, then a legal bar. */
+/** The navy close: brand and contact, the same four groups as the header, then legal. */
 export function SiteFooter() {
   return (
     <footer className="bg-navy text-white">
-      <div className="mx-auto max-w-[1280px] px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+      <div className="mx-auto max-w-7xl px-4 pt-16 pb-10 sm:px-6 lg:px-8 lg:pt-20">
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-8">
           <div className="lg:col-span-4">
             <Logo tone="white" />
             <p className="mt-5 max-w-[34ch] text-[16px] leading-[1.6] text-[#c8d3e6]">
               Pre-vetted, compliance-cleared engineers for enterprises and staffing firms, ready to start in 48 hours.
             </p>
-            <ul className="mt-8 space-y-3 text-[15px]">
+            <ul className="mt-7 space-y-3 text-[15px]">
               <li>
-                <a href={`tel:${CONTACT.tel}`} className="tnum inline-flex items-center gap-2.5 font-medium transition-colors hover:text-sky">
-                  <IconPhone size={17} strokeWidth={1.5} className="text-sky" />
+                <a href={`tel:${CONTACT.tel}`} className="tnum inline-flex items-center gap-2.5 font-medium text-white hover:text-sky">
+                  <Phone size={18} aria-hidden="true" className="text-sky" />
                   {CONTACT.phone}
                 </a>
               </li>
               <li>
-                <a href={`mailto:${CONTACT.email}`} className="inline-flex items-center gap-2.5 font-medium transition-colors hover:text-sky">
-                  <IconMail size={17} strokeWidth={1.5} className="text-sky" />
+                <a href={`mailto:${CONTACT.email}`} className="inline-flex items-center gap-2.5 font-medium text-white hover:text-sky">
+                  <EnvelopeSimple size={18} aria-hidden="true" className="text-sky" />
                   {CONTACT.email}
                 </a>
               </li>
@@ -54,20 +54,14 @@ export function SiteFooter() {
             ))}
           </nav>
         </div>
-      </div>
 
-      {/* Legal bar: one tone deeper than the footer, the full width of the page */}
-      <div className="bg-[#07142a]">
-        <div className="mx-auto flex max-w-[1280px] flex-col gap-3 px-4 py-5 text-[14px] text-[#9aa8bf] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p className="flex items-center gap-2.5">
-            <LogoMark size={16} className="shrink-0 text-sun" />
-            © 2026 TalentBridge, Inc. An equal opportunity employer.
-          </p>
+        <div className="mt-16 flex flex-col gap-3 border-t border-white/15 pt-6 text-[14px] text-[#9aa8bf] sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2026 TalentBridge, Inc. An equal opportunity employer.</p>
           <nav aria-label="Legal" className="flex flex-wrap gap-x-6 gap-y-2">
-            <Link href="/privacy" className="transition-colors hover:text-white">
+            <Link href="/privacy" className="hover:text-white">
               Privacy policy
             </Link>
-            <Link href="/terms" className="transition-colors hover:text-white">
+            <Link href="/terms" className="hover:text-white">
               Terms of use
             </Link>
             <CookiePrefsButton />

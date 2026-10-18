@@ -43,3 +43,4 @@ next-env.d.ts
 # design tool working files (screenshots, caches)
 /.taste-skill/
 /.impeccable/
+/.claude/

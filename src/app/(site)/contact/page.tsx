@@ -55,6 +55,9 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
   const industry = INDUSTRIES.find((i) => i.query === one(sp.industry));
   const requested = candidateByCode.get(one(sp.profile) ?? "");
   const profile = who === "hiring" && requested && isPresentable(requested) ? requested : undefined;
+  // The home page's role builder sends its sentence as three parameters
+  const built = [one(sp.seniority), one(sp.discipline), one(sp.start)];
+  const sentence = built.every(Boolean) ? `1 ${built[0]} ${built[1]} engineer, able to start ${built[2]}` : "";
   const lede = profile
     ? `You asked about ${profile.code}: ${profile.title}, ${profile.yearsExperience} years of experience. Send the role and we'll confirm availability and rate within one business day.`
     : industry && who === "hiring"
@@ -126,7 +129,7 @@ export default async function ContactPage({ searchParams }: PageProps<"/contact"
                 </Suspense>
               ) : (
                 <div className="[&_form]:space-y-5 [&_input]:h-12 [&_input]:rounded-[6px] [&_input]:text-[16px] [&_input]:ring-[#7b8598] [&_[aria-pressed]]:rounded-[6px] [&_[aria-pressed=false]]:ring-[#7b8598] [&_button[role=combobox]]:h-12 [&_button[role=combobox]]:rounded-[6px]">
-                  <HireTalentForm initialWho={agency ? "Staffing agency" : "Enterprise"} initialRoles={profile ? `${profile.title} (${profile.code})` : ""} />
+                  <HireTalentForm initialWho={agency ? "Staffing agency" : "Enterprise"} initialRoles={profile ? `${profile.title} (${profile.code})` : sentence} />
                 </div>
               )}
             </div>
