@@ -1,50 +1,58 @@
 @import "tailwindcss";
 
-/* TalentBridge design tokens (PRD §3). Light, institutional, flat. */
+/* TalentBridge brand tokens: navy ground, white field, one cobalt accent. */
 @theme {
-  --color-canvas: #f4f6f5;
+  --color-canvas: #f5f7fa;
   --color-surface: #ffffff;
-  --color-line: #e2e8f0;
-  --color-line-strong: #cbd5e1;
-  --color-ink: #0e1a16;
-  --color-ink-2: #1e293b;
-  --color-muted: #475569;
-  --color-subtle: #64748b;
-  --color-faint: #94a3b8;
+  --color-line: #dfe3ea;
+  --color-line-strong: #c5ccd8;
+  --color-ink: #0b1b33;
+  --color-ink-2: #1c2c47;
+  --color-muted: #3d4a60;
+  --color-subtle: #5f6b80;
+  --color-faint: #8792a6;
 
-  --color-cobalt: #00785c; /* interaction accent = brand emerald */
-  --color-cobalt-strong: #005f49;
-  --color-cobalt-wash: #e4f5ee;
+  --color-cobalt: #2558e0; /* interaction accent = brand cobalt */
+  --color-cobalt-strong: #1d47c0;
+  --color-cobalt-wash: #eef3fd;
 
   /* Status: dot/fill uses the brand hue, text uses the deeper step for AA contrast */
-  --color-avail: #10b981;
-  --color-avail-bg: #ecfdf5;
-  --color-avail-ink: #047857;
-  --color-notice: #f59e0b;
-  --color-notice-bg: #fef3c7;
-  --color-notice-ink: #92400e;
-  --color-placed: #64748b;
-  --color-placed-bg: #f1f5f9;
-  --color-placed-ink: #475569;
-  --color-flag: #ef4444;
-  --color-flag-bg: #fef2f2;
-  --color-flag-ink: #b91c1c;
+  --color-avail: #1f9d5c;
+  --color-avail-bg: #e9f6ef;
+  --color-avail-ink: #166c40;
+  --color-notice: #d48806;
+  --color-notice-bg: #fdf3e1;
+  --color-notice-ink: #9a5b00;
+  --color-placed: #5f6b80;
+  --color-placed-bg: #f0f2f5;
+  --color-placed-ink: #3d4a60;
+  --color-flag: #d92d20;
+  --color-flag-bg: #fdecea;
+  --color-flag-ink: #b42318;
 
-  /* Company site: evergreen stage + verified emerald brand */
-  --color-night: #071a14;
-  --color-night-2: #0c261e;
-  --color-night-3: #123328;
-  --color-night-line: #1b3a30;
-  --color-sky: #2ee6a8;
-  --color-brand: #00785c;
-  --color-brand-strong: #005f49;
-  --color-brand-bright: #2ee6a8;
-  --color-brand-wash: #e4f5ee;
+  /* Company site brand. Navy is the ground, white the field, cobalt the one
+     accent. brand fills buttons (white text 5.9:1); signal is the lighter
+     cobalt for accents and links on navy (5.5:1). */
+  --color-navy: #0b1b33;
+  --color-navy-2: #13264a;
+  --color-navy-3: #1c3260;
+  --color-mist: #f5f7fa;
+  --color-ash: #9aa8bf;
+  --color-signal: #5b8cff;
+  --color-night: #0b1b33;
+  --color-night-2: #13264a;
+  --color-night-3: #1c3260;
+  --color-night-line: #24396a;
+  --color-sky: #5b8cff;
+  --color-brand: #2558e0;
+  --color-brand-strong: #1d47c0;
+  --color-brand-bright: #5b8cff;
+  --color-brand-wash: #eef3fd;
   --color-sun: #ffc247;
   --color-sun-wash: #fff4d9;
   --color-coral: #c4441f;
   --color-coral-wash: #fdeae4;
-  --color-paper: #f4f6f5;
+  --color-paper: #f5f7fa;
 
   /* Product accents (identity only, never status) */
   --color-acc-cobalt: #2563eb;
@@ -64,7 +72,8 @@
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-display: var(--font-general), ui-sans-serif, system-ui, sans-serif;
+  --font-brand: var(--font-general), ui-sans-serif, system-ui, sans-serif;
 
   --text-2xs: 0.6875rem;
   --text-2xs--line-height: 1rem;
@@ -104,7 +113,7 @@ table,
 }
 
 ::selection {
-  background: #b8ecd8;
+  background: #cddbff;
   color: var(--color-ink);
 }
 
@@ -132,7 +141,7 @@ table,
 
 /* Themed scrollbars: thin, rounded, quiet until hovered */
 html {
-  scrollbar-color: #b7c4bf transparent;
+  scrollbar-color: #b9c3d3 transparent;
 }
 ::-webkit-scrollbar {
   width: 10px;
@@ -142,13 +151,13 @@ html {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c9d3cf;
+  background: #c9d1de;
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #93a59e;
+  background: #8e9ab0;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
@@ -157,7 +166,7 @@ html {
 }
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: #c9d3cf transparent;
+  scrollbar-color: #c9d1de transparent;
 }
 /* Horizontal chip strips scroll without a visible bar */
 .no-scrollbar { scrollbar-width: none; }
@@ -175,7 +184,7 @@ html {
 
 /* Ledger tick when a discipline count changes */
 @keyframes ledger-flash {
-  0% { background-color: rgb(16 185 129 / 0.18); }
+  0% { background-color: rgb(37 88 224 / 0.14); }
   100% { background-color: transparent; }
 }
 .ledger-flash {
@@ -198,20 +207,35 @@ html {
 .anim-fade { animation: fade-in 160ms ease-out; }
 .anim-dialog { animation: dialog-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 
-/* Scroll reveal: one gentle rise, applied per section, not per element */
-.reveal { opacity: 0; transform: translateY(18px); transition: opacity 700ms cubic-bezier(0.2, 0.7, 0.2, 1), transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1); }
-.reveal[data-shown="true"] { opacity: 1; transform: none; }
-.reveal-stagger > * { opacity: 0; transform: translateY(14px); transition: opacity 600ms ease, transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1); }
-.reveal-stagger[data-shown="true"] > * { opacity: 1; transform: none; }
-.reveal-stagger[data-shown="true"] > *:nth-child(2) { transition-delay: 80ms; }
-.reveal-stagger[data-shown="true"] > *:nth-child(3) { transition-delay: 160ms; }
-.reveal-stagger[data-shown="true"] > *:nth-child(4) { transition-delay: 240ms; }
-.reveal-stagger[data-shown="true"] > *:nth-child(5) { transition-delay: 320ms; }
-.reveal-stagger[data-shown="true"] > *:nth-child(6) { transition-delay: 400ms; }
+/* Scroll reveal: one restrained fade-up. Hidden only when scripting runs, so nothing stays invisible without JS */
+@media (scripting: enabled) {
+  .reveal:not([data-shown="true"]) { opacity: 0; transform: translateY(24px); }
+  .reveal-stagger:not([data-shown="true"]) > * { opacity: 0; transform: translateY(24px); }
+}
+.reveal,
+.reveal-stagger > * { transition: opacity 650ms cubic-bezier(0.16, 1, 0.3, 1), transform 650ms cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal-stagger[data-shown="true"] > *:nth-child(2) { transition-delay: 90ms; }
+.reveal-stagger[data-shown="true"] > *:nth-child(3) { transition-delay: 180ms; }
+.reveal-stagger[data-shown="true"] > *:nth-child(4) { transition-delay: 270ms; }
+.reveal-stagger[data-shown="true"] > *:nth-child(n+5) { transition-delay: 360ms; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal-stagger > * { transition: opacity 300ms ease-out; transform: none !important; }
+}
 
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .marquee { animation: marquee 38s linear infinite; }
 .marquee-wrap:hover .marquee { animation-play-state: paused; }
+
+/* Home: the bench feed rolls upward; the running check fills while it holds */
+@keyframes feed-roll { from { transform: translateY(0); } to { transform: translateY(calc(-50% - 4px)); } }
+.feed-track { animation: feed-roll 48s linear infinite; }
+.feed-wrap:hover .feed-track { animation-play-state: paused; }
+@keyframes step-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.step-fill { transform-origin: left; animation: step-fill var(--step-ms, 2600ms) linear both; }
+@media (prefers-reduced-motion: reduce) {
+  .feed-track, .step-fill { animation: none; }
+  .feed-wrap { overflow-y: auto; }
+}
 
 @keyframes caret { 50% { opacity: 0; } }
 .caret { animation: caret 1s steps(1) infinite; }
@@ -260,6 +284,80 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Marketing site: brand face, orange interaction accent, square controls */
+.site {
+  font-family: var(--font-brand);
+  font-feature-settings: normal;
+}
+.site :focus-visible { outline-color: var(--color-brand); }
+
+/* Hero bench card: the redaction bars settle in once on load */
+@keyframes redact { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.anim-redact { transform-origin: left; animation: redact 500ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both; }
+@media (prefers-reduced-motion: reduce) {
+  .anim-redact { animation: none; }
+}
+
+/* ───────────────────────── App UI ─────────────────────────
+   Signed-in workspace and platform console. Enterprise register (Workday /
+   Salesforce): navy global header, white sidebar, canvas pages, white cards
+   with 1px borders, one action blue, status shown as dot + text.
+   Token names are kept from the earlier pass so pages keep compiling. */
+@theme {
+  /* Sidebar: white rail beside the navy header */
+  --color-side: #ffffff;
+  --color-side-strip: #f5f7fa;
+  --color-side-active: #eef3fd;
+  --color-side-text: #3d4a60;
+  --color-side-line: #dfe3ea;
+  /* Content */
+  --color-hair: #dfe3ea;
+  --color-well: #f5f7fa;
+  /* Form-control boundary: 3.1:1 on white, as WCAG 1.4.11 requires */
+  --color-control: #8792a6;
+
+  /* Status tags: four semantic tones only (AA text on its fill). The legacy
+     teal and slate names map onto info and neutral. */
+  --color-tag-blue-bg: #eef3fd;     --color-tag-blue-border: #d3defa;    --color-tag-blue-text: #1d47c0;
+  --color-tag-green-bg: #e9f6ef;    --color-tag-green-border: #c9e7d6;   --color-tag-green-text: #166c40;
+  --color-tag-amber-bg: #fdf3e1;    --color-tag-amber-border: #f1dcb2;   --color-tag-amber-text: #9a5b00;
+  --color-tag-red-bg: #fdecea;      --color-tag-red-border: #f5cbc6;     --color-tag-red-text: #b42318;
+  --color-tag-teal-bg: #eef3fd;     --color-tag-teal-border: #d3defa;    --color-tag-teal-text: #1d47c0;
+  --color-tag-slate-bg: #f0f2f5;    --color-tag-slate-border: #dfe3ea;   --color-tag-slate-text: #3d4a60;
+  --color-tag-navy-bg: #0b1b33;     --color-tag-navy-border: #0b1b33;    --color-tag-navy-text: #ffffff;
+
+  /* Depth: borders, not shadows. Only true overlays float. */
+  --shadow-overlay: 0 12px 32px -8px rgb(11 27 51 / 0.18), 0 0 0 1px #dfe3ea;
+  --shadow-bevel: none;
+  --shadow-raise: 0 0 0 1px #dfe3ea;
+  --shadow-raise-dark: 0 0 0 1px #dfe3ea;
+
+  --ease-power3-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-power3-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* App scope: brand face, tight default type */
+.app {
+  --btn-bevel: none;
+  font-family: var(--font-brand);
+  font-feature-settings: normal;
+  font-size: 14px;
+  color: var(--color-ink);
+}
+.app .tnum, .app table { font-variant-numeric: tabular-nums; }
+.app ::placeholder { color: var(--color-subtle); opacity: 1; }
+/* Section label (sidebar groups, card sub-sections): sentence case, never tracked caps */
+@utility eyebrow { font-size: 12px; line-height: 1.2; font-weight: 600; color: var(--color-subtle); }
+@keyframes sheet-in-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes sheet-in-left { from { transform: translateX(-100%); } to { transform: none; } }
+.anim-sheet-right { animation: sheet-in-right 350ms var(--ease-power3-out) both; }
+.anim-sheet-left { animation: sheet-in-left 300ms var(--ease-power3-out) both; }
+@keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+.anim-pop { animation: pop-in 180ms var(--ease-power3-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .anim-sheet-right, .anim-sheet-left, .anim-pop { animation: none; }
 }
 
 @media print {

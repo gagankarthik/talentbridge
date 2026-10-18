@@ -4,8 +4,8 @@ import { CookieNotice } from "@/features/site/cookie-notice";
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
-      <a href="#main" className="sr-only z-[90] rounded-full bg-ink px-4 py-2 text-[14px] font-semibold text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
+    <div className="site flex min-h-screen flex-col bg-surface">
+      <a href="#main" className="sr-only z-[90] bg-brand px-4 py-2 text-[15px] font-semibold text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3">
         Skip to content
       </a>
       <SiteHeader />

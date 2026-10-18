@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { candidateById, currentRecruiter, presentable, requests } from "@/lib/data";
 import { availabilityOf, blindName, DEMO_NOW } from "@/lib/format";
 import type { EngagementStatus } from "@/lib/types";
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/app-shell";
+import { buttonClass } from "@/components/ui/button";
 import { RequestTalentButton } from "@/features/request-engine/talent-request";
 import { DashboardView, type DashboardData } from "@/features/dashboard/dashboard-view";
 
@@ -26,6 +28,14 @@ export default function DashboardPage() {
     availableNow: onBench.filter((c) => c.availability === "IMMEDIATE").length,
     onBench: onBench.length,
     submitted30: submitted.filter((r) => DEMO_NOW - new Date(r.createdAt).getTime() < 30 * 86_400_000).length,
+    // Submissions per week, oldest first, for the last 8 weeks
+    weekly: Array.from({ length: 8 }, (_, i) => {
+      const end = DEMO_NOW - (7 - i) * 7 * 86_400_000;
+      return submitted.filter((r) => {
+        const t = new Date(r.createdAt).getTime();
+        return t <= end && t > end - 7 * 86_400_000;
+      }).length;
+    }),
     interviewRate: submitted.length ? Math.round((interviewed / submitted.length) * 100) : 0,
     availability: PRACTICES.map(([key, label]) => {
       const list = onBench.filter((c) => c.discipline === key);
@@ -51,7 +61,20 @@ export default function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="Dashboard" actions={<RequestTalentButton variant="primary" size="md">Match a job spec</RequestTalentButton>} />
+      <PageHeader
+        title="Dashboard"
+        description={`${onBench.length} verified engineers on the bench this week. Holds, submissions and availability for ${currentRecruiter.companyName}.`}
+        actions={
+          <>
+            <Link href="/talent" className={buttonClass("secondary", "md")}>
+              Browse talent
+            </Link>
+            <RequestTalentButton variant="primary" size="md">
+              Match a job spec
+            </RequestTalentButton>
+          </>
+        }
+      />
       <DashboardView data={data} />
     </>
   );

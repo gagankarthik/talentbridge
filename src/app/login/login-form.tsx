@@ -16,7 +16,7 @@ export function LoginForm() {
   return (
     <form
       noValidate
-      className="space-y-4"
+      className="space-y-5 [&_label]:text-[14px] [&_label]:text-[#0b1b33] [&_input]:ring-[#7b8598]"
       onSubmit={(e) => {
         e.preventDefault();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Enter the work email you registered with.");
@@ -27,27 +27,31 @@ export function LoginForm() {
       }}
     >
       <Field label="Work email" htmlFor="l-email">
-        <Input inputSize="lg" id="l-email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Input inputSize="lg" className="h-12 rounded-[6px] text-[16px]" id="l-email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
       <Field label="Password" htmlFor="l-password">
-        <Input inputSize="lg" id="l-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Input inputSize="lg" className="h-12 rounded-[6px] text-[16px]" id="l-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
       </Field>
       {error && (
-        <p role="alert" className="text-[13px] text-flag-ink">
+        <p role="alert" className="rounded-[6px] border border-[#f3c2bd] bg-[#fdecea] px-3.5 py-2.5 text-[15px] font-medium text-[#b42318]">
           {error}
         </p>
       )}
-      <Button type="submit" variant="primary" size="lg" className="h-12 w-full rounded-full text-[15px] font-semibold" disabled={busy}>
+      <Button type="submit" variant="primary" size="lg" className="h-12 w-full rounded-[6px] text-[16px] font-semibold" disabled={busy}>
         {busy ? "Signing in…" : "Sign in"}
       </Button>
-      <div className="flex items-center gap-3 text-xs text-subtle">
-        <span className="h-px flex-1 bg-line" />
+      <div className="flex items-center gap-3 text-[14px] text-[#5f6b80]" aria-hidden="true">
+        <span className="h-px flex-1 bg-[#dfe3ea]" />
         or
-        <span className="h-px flex-1 bg-line" />
+        <span className="h-px flex-1 bg-[#dfe3ea]" />
       </div>
-      <Button size="lg" className="h-12 w-full rounded-full text-[15px] font-semibold" onClick={() => router.push("/dashboard")}>
+      <button
+        type="button"
+        className="inline-flex h-12 w-full items-center justify-center rounded-[6px] border border-[#7b8598] bg-white text-[16px] font-semibold text-[#0b1b33] transition-colors hover:border-[#3d4a60] hover:bg-[#f5f7fa]"
+        onClick={() => router.push("/dashboard")}
+      >
         Sign in with company SSO
-      </Button>
+      </button>
     </form>
   );
 }

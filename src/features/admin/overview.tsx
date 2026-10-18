@@ -1,143 +1,205 @@
 "use client";
 
 import Link from "next/link";
-import { cn } from "@/lib/cn";
-import { relativeAgo } from "@/lib/format";
+import { fmtDateTime, relativeAgo } from "@/lib/format";
 import { useDemoNow } from "@/lib/clock";
-import { BarList, StatTile } from "@/features/dashboard/charts";
-import { CandidateCode, Pill } from "@/components/ui/status";
+import { PageHeader } from "@/components/layout/app-shell";
+import { buttonClass } from "@/components/ui/button";
+import { CandidateCode } from "@/components/ui/status";
+import { StatusDot } from "@/components/ui/status-dot";
+import { DetailSection, EmptyState, KpiTile } from "@/components/ui/data-display";
+import { IconCheck } from "@/components/icons";
 import { useAdmin } from "./admin-store";
+import { Avatar, Meta, OrgMark, PageBody, textAction } from "./ui";
 
 export interface OpsData {
   stages: { label: string; value: number }[];
   attention: { code: string; name: string; label: string; severity: "flag" | "notice"; due?: number }[];
 }
 
-function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="rounded-[12px] bg-surface ring-1 ring-line">
-      <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-        <h2 className="text-[14.5px] font-semibold text-ink">{title}</h2>
-        {action}
-      </header>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
 export function AdminOverview({ ops }: { ops: OpsData }) {
   const { orgs, audit } = useAdmin();
   const now = useDemoNow(60_000);
+  const live = orgs.filter((o) => o.status !== "suspended");
   const active = orgs.filter((o) => o.status === "active");
-  const seatsUsed = orgs.reduce((n, o) => n + (o.status === "suspended" ? 0 : o.members), 0);
-  const seatsTotal = orgs.reduce((n, o) => n + (o.status === "suspended" ? 0 : o.seats), 0);
+  const onboarding = orgs.filter((o) => o.status === "onboarding").length;
+  const seatsUsed = live.reduce((n, o) => n + o.members, 0);
+  const seatsTotal = live.reduce((n, o) => n + o.seats, 0);
+  const flags = ops.attention.filter((a) => a.severity === "flag").length;
+  const benchTotal = ops.stages.reduce((n, s) => n + s.value, 0);
+  const benchMax = Math.max(1, ...ops.stages.map((s) => s.value));
 
   const needs = [
-    ...orgs.filter((o) => o.status === "onboarding").map((o) => ({ o, why: o.owner.invitePending ? "Owner hasn't accepted the invite" : "Onboarding in progress", tone: "notice" as const })),
-    ...orgs.filter((o) => o.status === "active" && o.members / o.seats >= 0.9).map((o) => ({ o, why: `${o.members} of ${o.seats} seats used`, tone: "notice" as const })),
-    ...orgs.filter((o) => o.status === "active" && o.plan === "Enterprise" && !o.sso).map((o) => ({ o, why: "Enterprise plan without SSO", tone: "notice" as const })),
-    ...orgs.filter((o) => o.status === "suspended").map((o) => ({ o, why: "Suspended", tone: "flag" as const })),
+    ...orgs
+      .filter((o) => o.status === "onboarding")
+      .map((o) => ({ o, why: o.owner.invitePending ? "Owner invite not accepted" : "Onboarding in progress", tone: "warning" as const })),
+    ...orgs
+      .filter((o) => o.status === "active" && o.members / o.seats >= 0.9)
+      .map((o) => ({ o, why: `${o.members} of ${o.seats} seats used`, tone: "warning" as const })),
+    ...orgs
+      .filter((o) => o.status === "active" && o.plan === "Enterprise" && !o.sso)
+      .map((o) => ({ o, why: "Enterprise plan without SSO", tone: "warning" as const })),
+    ...orgs.filter((o) => o.status === "suspended").map((o) => ({ o, why: "Suspended", tone: "danger" as const })),
   ];
 
   return (
-    <div className="space-y-5 px-4 py-5 sm:px-6">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <StatTile label="Active organizations" value={active.length} note={`${orgs.length} in total`} />
-        <StatTile label="In onboarding" value={orgs.filter((o) => o.status === "onboarding").length} />
-        <StatTile label="Seats in use" value={`${seatsUsed} / ${seatsTotal}`} />
-        <StatTile label="Active holds" value={orgs.reduce((n, o) => n + o.activeHolds, 0)} note="Across all organizations" />
-        <StatTile label="Compliance flags" value={ops.attention.filter((a) => a.severity === "flag").length} tone="warn" note="Blocking presentation" />
-      </div>
+    <>
+      <PageHeader
+        title="Platform overview"
+        description={`Customers, the bench and compliance. Updated ${fmtDateTime(new Date(now).toISOString())}.`}
+        actions={
+          <Link href="/admin/organizations" className={buttonClass("secondary", "md")}>
+            View organizations
+          </Link>
+        }
+      />
 
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_1fr]">
-        <Panel
-          title="Organizations needing attention"
-          action={
-            <Link href="/admin/organizations" className="text-[13px] font-medium text-cobalt hover:underline">
-              All organizations
-            </Link>
-          }
-        >
-          {needs.length === 0 ? (
-            <p className="py-6 text-center text-[14px] text-subtle">Nothing needs attention.</p>
-          ) : (
-            <ul className="-my-2 divide-y divide-line">
-              {needs.map(({ o, why, tone }) => (
-                <li key={o.id + why}>
-                  <Link href={`/admin/organizations/${o.id}`} className="flex items-center justify-between gap-4 py-3 hover:bg-canvas">
-                    <span className="min-w-0">
-                      <span className="block truncate text-[14px] font-medium text-ink">{o.name}</span>
-                      <span className="block text-xs text-subtle">
-                        {o.plan}, client partner {o.clientPartner}
+      <PageBody className="space-y-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4 xl:gap-6">
+          <KpiTile
+            label="Active organizations"
+            value={active.length}
+            hint={onboarding ? `${onboarding} more in onboarding` : `${orgs.length} in total`}
+            href="/admin/organizations"
+          />
+          <KpiTile label="Seats in use" value={`${seatsUsed} of ${seatsTotal}`} hint={`${Math.round((seatsUsed / seatsTotal) * 100)}% of licensed seats`} />
+          <KpiTile label="Active holds" value={orgs.reduce((n, o) => n + o.activeHolds, 0)} hint="Across all customers" />
+          <KpiTile
+            label="Compliance flags"
+            value={flags}
+            hint={<span className={flags ? "font-medium text-[#b42318]" : undefined}>{flags ? "Blocking presentation" : "Nothing blocking"}</span>}
+            href="/ops/compliance"
+          />
+        </div>
+
+        <div className="grid items-start gap-6 xl:grid-cols-2">
+          <DetailSection
+            card
+            title="Needs attention"
+            description={`${needs.length} ${needs.length === 1 ? "organization" : "organizations"}`}
+            action={
+              <Link href="/admin/organizations" className={textAction}>
+                View all
+              </Link>
+            }
+            bodyClassName="p-0"
+          >
+            {needs.length === 0 ? (
+              <EmptyState
+                icon={<IconCheck size={18} />}
+                title="Nothing needs attention"
+                description="Every customer is active, within seats and set up securely."
+              />
+            ) : (
+              <ul className="divide-y divide-line">
+                {needs.slice(0, 5).map(({ o, why, tone }) => (
+                  <li key={o.id + why}>
+                    <Link
+                      href={`/admin/organizations/${o.id}`}
+                      className="flex min-h-[60px] items-center gap-3 px-5 py-3 transition-colors duration-150 hover:bg-canvas sm:px-6"
+                    >
+                      <OrgMark name={o.name} size={32} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[14px] font-medium text-ink">{o.name}</span>
+                        <Meta items={[`${o.plan} plan`, o.clientPartner]} />
                       </span>
-                    </span>
-                    <Pill tone={tone}>{why}</Pill>
-                  </Link>
+                      <StatusDot tone={tone} className="hidden sm:inline-flex">
+                        {why}
+                      </StatusDot>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DetailSection>
+
+          <DetailSection
+            card
+            title="Recent activity"
+            description="From the audit log"
+            action={
+              <Link href="/admin/audit" className={textAction}>
+                View all
+              </Link>
+            }
+            bodyClassName="p-0"
+          >
+            <ol className="divide-y divide-line">
+              {audit.slice(0, 5).map((e) => (
+                <li key={e.id} className="flex min-h-[60px] items-center gap-3 px-5 py-3 sm:px-6">
+                  <Avatar name={e.actor} size={32} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] text-ink">
+                      <span className="font-medium">{e.actor}</span> <span className="text-muted">{e.action.charAt(0).toLowerCase() + e.action.slice(1)}</span>
+                    </p>
+                    <Meta items={[e.orgId ? (orgs.find((o) => o.id === e.orgId)?.name ?? e.orgId) : "Platform"]} />
+                  </div>
+                  <time className="tnum shrink-0 text-[13px] text-subtle" dateTime={e.at} title={fmtDateTime(e.at)}>
+                    {relativeAgo(e.at, now)}
+                  </time>
+                </li>
+              ))}
+            </ol>
+          </DetailSection>
+
+          <DetailSection
+            card
+            title="Bench pipeline"
+            description={`${benchTotal} consultants`}
+            action={
+              <Link href="/ops/bench" className={textAction}>
+                Open bench
+              </Link>
+            }
+          >
+            <ul className="space-y-4">
+              {ops.stages.map((s) => (
+                <li key={s.label} className="grid grid-cols-[minmax(96px,128px)_minmax(0,1fr)_36px] items-center gap-4 text-[14px]">
+                  <span className="text-muted">{s.label}</span>
+                  <span className="h-2 overflow-hidden rounded-full bg-[#e6eaf0]" role="img" aria-label={`${s.label}: ${s.value}`}>
+                    <span className="block h-full rounded-full bg-cobalt" style={{ width: `${(s.value / benchMax) * 100}%` }} />
+                  </span>
+                  <span className="tnum text-right font-semibold text-ink">{s.value}</span>
                 </li>
               ))}
             </ul>
-          )}
-        </Panel>
+          </DetailSection>
 
-        <Panel
-          title="Recent platform activity"
-          action={
-            <Link href="/admin/audit" className="text-[13px] font-medium text-cobalt hover:underline">
-              Audit log
-            </Link>
-          }
-        >
-          <ol className="-my-2 divide-y divide-line">
-            {audit.slice(0, 6).map((e) => (
-              <li key={e.id} className="flex gap-3 py-2.5 text-[13px]">
-                <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", e.actorType === "platform" ? "bg-cobalt" : e.actorType === "customer" ? "bg-line-strong" : "bg-faint")} />
-                <span className="min-w-0 flex-1">
-                  <span className="font-medium text-ink">{e.action}</span>
-                  <span className="block truncate text-subtle">
-                    {e.actor}
-                    {e.orgId ? `, ${orgs.find((o) => o.id === e.orgId)?.name ?? e.orgId}` : ""}
-                  </span>
-                </span>
-                <span className="tnum shrink-0 text-xs text-subtle">{relativeAgo(e.at, now)}</span>
-              </li>
-            ))}
-          </ol>
-        </Panel>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        <Panel
-          title="Bench pipeline"
-          action={
-            <Link href="/ops/bench" className="text-[13px] font-medium text-cobalt hover:underline">
-              Bench tracker
-            </Link>
-          }
-        >
-          <BarList data={ops.stages} unit="consultants" color="var(--color-ink-2)" />
-        </Panel>
-        <Panel
-          title="Compliance needing attention"
-          action={
-            <Link href="/ops/compliance" className="text-[13px] font-medium text-cobalt hover:underline">
-              Compliance
-            </Link>
-          }
-        >
-          <ul className="-my-2 divide-y divide-line">
-            {ops.attention.slice(0, 6).map((a) => (
-              <li key={a.code + a.label} className="flex items-center gap-3 py-2.5">
-                <CandidateCode code={a.code} />
-                <span className="min-w-0 flex-1 truncate text-[13.5px] text-ink">{a.name}</span>
-                <Pill tone={a.severity === "flag" ? "flag" : "notice"}>
-                  {a.label}
-                  {a.due !== undefined ? `, ${a.due}d` : ""}
-                </Pill>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      </div>
-    </div>
+          <DetailSection
+            card
+            title="Compliance queue"
+            description={`${flags} blocking · ${ops.attention.length - flags} notices`}
+            action={
+              <Link href="/ops/compliance" className={textAction}>
+                Open queue
+              </Link>
+            }
+            bodyClassName="p-0"
+          >
+            {ops.attention.length === 0 ? (
+              <EmptyState icon={<IconCheck size={18} />} title="Queue clear" description="Nothing is blocking presentation." />
+            ) : (
+              <ul className="divide-y divide-line">
+                {ops.attention.slice(0, 5).map((a) => (
+                  <li
+                    key={a.code + a.label}
+                    className="grid min-h-[52px] grid-cols-[72px_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-5 py-2.5 sm:grid-cols-[72px_minmax(0,1fr)_minmax(0,auto)] sm:px-6"
+                  >
+                    <Link href={`/admin/candidates/${a.code}`} className="hover:text-cobalt">
+                      <CandidateCode code={a.code} />
+                    </Link>
+                    <span className="truncate text-[14px] text-ink">{a.name}</span>
+                    <StatusDot tone={a.severity === "flag" ? "danger" : "warning"} className="col-start-2 sm:col-start-auto">
+                      {a.label}
+                      {a.due !== undefined ? `, ${a.due} days` : ""}
+                    </StatusDot>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DetailSection>
+        </div>
+      </PageBody>
+    </>
   );
 }

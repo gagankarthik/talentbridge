@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { candidates, presentable } from "@/lib/data";
 import { complianceIssues } from "@/lib/compliance";
-import { PageHeader } from "@/components/layout/app-shell";
 import { ComplianceQueue, type QueueItem } from "@/features/ops/compliance-queue";
 
 export const metadata: Metadata = { title: "Compliance queue" };
@@ -23,20 +22,15 @@ export default function CompliancePage() {
   const count = (key: string) => candidates.filter((c) => complianceIssues(c).some((i) => i.key === key)).length;
 
   return (
-    <>
-      <PageHeader
-        title="Compliance"
-      />
-      <ComplianceQueue
-        items={items}
-        stats={{
-          presentable: presentable.length,
-          presentableVerified: presentable.filter((c) => c.compliance.workAuthVerified).length,
-          visa90: count("visa"),
-          bgPending: count("bg"),
-          stale: count("fresh"),
-        }}
-      />
-    </>
+    <ComplianceQueue
+      items={items}
+      stats={{
+        presentable: presentable.length,
+        presentableVerified: presentable.filter((c) => c.compliance.workAuthVerified).length,
+        visa90: count("visa"),
+        bgPending: count("bg"),
+        stale: count("fresh"),
+      }}
+    />
   );
 }

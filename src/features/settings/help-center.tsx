@@ -5,7 +5,9 @@ import { cn } from "@/lib/cn";
 import { CONTACT } from "@/lib/company";
 import { useWorkspace } from "@/lib/workspace-store";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/form";
+import { Field, Input, Textarea } from "@/components/ui/form";
+import { DetailSection, EmptyState, Kbd } from "@/components/ui/data-display";
+import { ActiveFilters, FilterMenu, FilterSearch, Toolbar } from "@/components/ui/filter-menu";
 import { IconChevronDown, IconClock, IconMail, IconPhone, IconSearch } from "@/components/icons";
 
 const TOPICS = [
@@ -42,16 +44,18 @@ const TOPICS = [
   },
 ];
 
-const SHORTCUTS = [
-  ["/", "Search the talent inventory"],
-  ["Esc", "Close a panel or dialog"],
-  ["Tab", "Move between controls"],
-  ["Enter", "Open the focused candidate"],
+const SHORTCUTS: [string[], string][] = [
+  [["⌘", "K"], "Open the command palette"],
+  [["/"], "Search the talent inventory"],
+  [["↑", "↓"], "Move through palette results"],
+  [["Esc"], "Close a panel or dialog"],
+  [["Enter"], "Open the focused candidate"],
 ];
 
 export function HelpCenter() {
   const { notify } = useWorkspace();
   const [q, setQ] = useState("");
+  const [topic, setTopic] = useState("all");
   const [open, setOpen] = useState<string | null>(null);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -59,42 +63,62 @@ export function HelpCenter() {
 
   const filtered = useMemo(() => {
     const n = q.trim().toLowerCase();
-    return TOPICS.map((t) => ({ ...t, items: t.items.filter((i) => !n || `${i.q} ${i.a}`.toLowerCase().includes(n)) })).filter((t) => t.items.length);
-  }, [q]);
+    return TOPICS.filter((t) => topic === "all" || t.topic === topic)
+      .map((t) => ({ ...t, items: t.items.filter((i) => !n || `${i.q} ${i.a}`.toLowerCase().includes(n)) }))
+      .filter((t) => t.items.length);
+  }, [q, topic]);
+  const count = filtered.reduce((n, t) => n + t.items.length, 0);
 
   return (
-    <div className="grid gap-5 px-4 py-5 sm:px-6 xl:grid-cols-[1fr_360px]">
-      <div className="space-y-5">
-        <div className="relative">
-          <IconSearch size={18} className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-subtle" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search help articles"
-            aria-label="Search help articles"
-            className="h-12 w-full rounded-[12px] bg-surface pr-4 pl-11 text-[15px] ring-1 ring-inset ring-line-strong placeholder:text-faint focus:ring-2 focus:ring-cobalt focus:outline-none"
+    <div className="mx-auto grid w-full max-w-[1440px] items-start gap-6 px-4 py-6 sm:px-8 sm:py-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="overflow-hidden rounded-lg border border-hair bg-surface">
+        <Toolbar
+          summary={`${count} ${count === 1 ? "article" : "articles"}`}
+          chips={
+            <ActiveFilters
+              filters={[
+                ...(q.trim() ? [{ key: "q", label: "Search", value: `“${q.trim()}”`, onRemove: () => setQ("") }] : []),
+                ...(topic !== "all" ? [{ key: "topic", label: "Topic", value: topic, onRemove: () => setTopic("all") }] : []),
+              ]}
+              onClearAll={() => {
+                setQ("");
+                setTopic("all");
+              }}
+            />
+          }
+        >
+          <FilterSearch value={q} onChange={setQ} placeholder="Search help articles" className="sm:w-[320px]" />
+          <FilterMenu
+            label="Topic"
+            value={topic}
+            allValue="all"
+            options={[{ value: "all", label: "All topics" }, ...TOPICS.map((t) => ({ value: t.topic, label: t.topic, meta: t.items.length }))]}
+            onChange={setTopic}
           />
-        </div>
+        </Toolbar>
 
         {filtered.length === 0 ? (
-          <div className="rounded-[12px] bg-surface p-10 text-center ring-1 ring-line">
-            <p className="text-[15px] font-semibold text-ink">No articles match &ldquo;{q}&rdquo;.</p>
-            <p className="mt-1 text-[14px] text-muted">Try another word, or send us a message and we&apos;ll help.</p>
+          <div className="border-t border-hair">
+            <EmptyState icon={<IconSearch size={18} />} title="No articles match" description="Try another word or topic, or send us a message and we'll help." />
           </div>
         ) : (
           filtered.map((t) => (
-            <section key={t.topic} className="rounded-[12px] bg-surface ring-1 ring-line">
-              <h2 className="border-b border-line px-5 py-3.5 text-[15px] font-semibold text-ink">{t.topic}</h2>
-              <ul className="divide-y divide-line">
+            <section key={t.topic} className="border-t border-hair">
+              <h2 className="flex h-10 items-center border-y border-hair bg-canvas px-5 text-[14px] font-semibold text-ink">{t.topic}</h2>
+              <ul>
                 {t.items.map((i) => {
                   const on = open === i.q;
                   return (
-                    <li key={i.q}>
-                      <button onClick={() => setOpen(on ? null : i.q)} aria-expanded={on} className="flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left text-[14px] font-medium text-ink hover:bg-canvas">
+                    <li key={i.q} className="border-t border-hair first:border-0">
+                      <button
+                        onClick={() => setOpen(on ? null : i.q)}
+                        aria-expanded={on}
+                        className="flex min-h-[44px] w-full items-center justify-between gap-4 px-5 py-2.5 text-left text-[14px] font-medium text-ink transition-colors duration-150 hover:bg-canvas"
+                      >
                         {i.q}
-                        <IconChevronDown size={16} className={cn("shrink-0 text-subtle transition-transform", on && "rotate-180")} />
+                        <IconChevronDown size={15} className={cn("shrink-0 text-subtle transition-transform duration-150 ease-power3-out", on && "rotate-180")} />
                       </button>
-                      {on && <p className="anim-fade px-5 pb-4 text-[14px] leading-relaxed text-muted">{i.a}</p>}
+                      {on && <p className="anim-fade max-w-[72ch] px-5 pb-4 text-[14px] leading-relaxed text-ink-2">{i.a}</p>}
                     </li>
                   );
                 })}
@@ -102,86 +126,80 @@ export function HelpCenter() {
             </section>
           ))
         )}
-
-        <section id="shortcuts" className="scroll-mt-24 rounded-[12px] bg-surface ring-1 ring-line">
-          <h2 className="border-b border-line px-5 py-3.5 text-[15px] font-semibold text-ink">Keyboard shortcuts</h2>
-          <ul className="divide-y divide-line">
-            {SHORTCUTS.map(([k, d]) => (
-              <li key={k} className="flex items-center justify-between px-5 py-3 text-[14px]">
-                <span className="text-ink">{d}</span>
-                <kbd className="min-w-8 rounded-[6px] bg-canvas px-2 py-0.5 text-center font-sans text-[12px] font-medium text-ink-2 ring-1 ring-line-strong">{k}</kbd>
-              </li>
-            ))}
-          </ul>
-        </section>
       </div>
 
-      <div className="space-y-5">
-        <section className="rounded-[12px] bg-surface ring-1 ring-line">
-          <h2 className="border-b border-line px-5 py-3.5 text-[15px] font-semibold text-ink">Contact support</h2>
-          <ul className="space-y-3 p-5 text-[14px]">
-            <li className="flex items-center gap-3">
-              <IconPhone size={17} className="text-subtle" />
-              <a href={`tel:${CONTACT.tel}`} className="font-medium text-ink hover:text-cobalt">
-                {CONTACT.phone}
-              </a>
-            </li>
-            <li className="flex items-center gap-3">
-              <IconMail size={17} className="text-subtle" />
-              <a href={`mailto:${CONTACT.email}`} className="font-medium break-all text-ink hover:text-cobalt">
-                {CONTACT.email}
-              </a>
-            </li>
-            <li className="flex items-center gap-3">
-              <IconClock size={17} className="text-subtle" />
-              <span className="text-muted">{CONTACT.hours}</span>
-            </li>
-          </ul>
-        </section>
+      <div className="space-y-4">
+        <div className="overflow-hidden rounded-lg border border-hair bg-surface">
+          <div className="flex items-center gap-2.5 px-5 py-3.5 shadow-[inset_0_-1px_0_var(--color-hair)]">
+            <span className="relative flex size-2">
+                            <span className="relative size-2 rounded-full bg-avail" />
+            </span>
+            <p className="text-[13.5px] font-medium text-ink">All systems operational</p>
+          </div>
 
-        <section className="rounded-[12px] bg-surface ring-1 ring-line">
-          <h2 className="border-b border-line px-5 py-3.5 text-[15px] font-semibold text-ink">Send us a message</h2>
-          <form
-            className="space-y-4 p-5"
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!subject.trim() || message.trim().length < 10) return setErr("Add a subject and a few words about what you need.");
-              setErr(null);
-              setSubject("");
-              setMessage("");
-              notify({ tone: "ok", title: "Message sent to support", body: "We reply within one business day." });
-            }}
-          >
-            <Field label="Subject" htmlFor="h-subject">
-              <Input id="h-subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
-            </Field>
-            <Field label="How can we help?" htmlFor="h-message">
-              <textarea
-                id="h-message"
-                rows={5}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="w-full rounded-ctl bg-surface px-3 py-2 text-sm text-ink ring-1 ring-inset ring-line-strong focus:ring-2 focus:ring-cobalt focus:outline-none"
-              />
-            </Field>
-            {err && (
-              <p role="alert" className="text-[13px] text-flag-ink">
-                {err}
-              </p>
-            )}
-            <Button type="submit" variant="primary" className="w-full">
-              Send message
-            </Button>
-          </form>
-        </section>
+          <DetailSection title="Contact support">
+            <ul className="space-y-2.5 text-[13.5px]">
+              <li className="flex items-center gap-3">
+                <IconPhone size={15} className="text-subtle" />
+                <a href={`tel:${CONTACT.tel}`} className="tnum font-medium text-ink hover:text-cobalt">
+                  {CONTACT.phone}
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                <IconMail size={15} className="text-subtle" />
+                <a href={`mailto:${CONTACT.email}`} className="font-medium break-all text-ink hover:text-cobalt">
+                  {CONTACT.email}
+                </a>
+              </li>
+              <li className="flex items-start gap-3">
+                <IconClock size={15} className="mt-0.5 text-subtle" />
+                <span className="text-subtle">{CONTACT.hours}</span>
+              </li>
+            </ul>
+          </DetailSection>
 
-        <section className="rounded-[12px] bg-surface p-5 ring-1 ring-line">
-          <p className="flex items-center gap-2 text-[14px] font-medium text-ink">
-            <span className="size-2 rounded-full bg-avail" />
-            All systems operational
-          </p>
-        </section>
+          <DetailSection title="Send us a message">
+            <form
+              className="space-y-4"
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!subject.trim() || message.trim().length < 10) return setErr("Add a subject and a few words about what you need.");
+                setErr(null);
+                setSubject("");
+                setMessage("");
+                notify({ tone: "ok", title: "Message sent to support", body: "We reply within one business day." });
+              }}
+            >
+              <Field label="Subject" htmlFor="h-subject">
+                <Input id="h-subject" value={subject} onChange={(e) => setSubject(e.target.value)} />
+              </Field>
+              <Field label="How can we help?" htmlFor="h-message" error={err}>
+                <Textarea id="h-message" rows={5} value={message} onChange={(e) => setMessage(e.target.value)} aria-invalid={!!err} />
+              </Field>
+              <Button type="submit" variant="primary" className="w-full">
+                Send message
+              </Button>
+            </form>
+          </DetailSection>
+        </div>
+
+        <div id="shortcuts" className="scroll-mt-24 overflow-hidden rounded-lg border border-hair bg-surface">
+          <DetailSection title="Keyboard shortcuts" bodyClassName="px-5 pt-2 pb-4">
+            <ul>
+              {SHORTCUTS.map(([keys, d]) => (
+                <li key={d} className="flex items-center justify-between gap-4 py-2 text-[13px]">
+                  <span className="text-ink-2">{d}</span>
+                  <span className="flex shrink-0 gap-1">
+                    {keys.map((k) => (
+                      <Kbd key={k}>{k}</Kbd>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </DetailSection>
+        </div>
       </div>
     </div>
   );

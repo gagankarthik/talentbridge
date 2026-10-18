@@ -7,7 +7,8 @@ export const metadata: Metadata = { title: "Profile" };
 export default function ProfilePage() {
   return (
     <>
-      <PageHeader title="Profile" />
+      <PageHeader title="Profile"
+        breadcrumb={[{ label: "Account" }, { label: "Profile" }]} description="Your details, notifications and sign-in security." />
       <ProfileSettings />
     </>
   );

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { cn } from "@/lib/cn";
-import { container, type } from "./styles";
+import { IconArrowRight } from "@/components/icons";
+import { PageHero, ui, wrap } from "@/components/site/page-kit";
 
 export interface LegalSection {
   id: string;
@@ -8,28 +8,37 @@ export interface LegalSection {
   body: React.ReactNode;
 }
 
-/** Shared layout for policy pages: title, date, sticky contents and readable prose. */
+/**
+ * Policy pages: a corporate page hero with the effective date, then long-form
+ * prose at a 68-character measure beside a sticky contents list.
+ */
 export function LegalPage({ title, updated, intro, sections }: { title: string; updated: string; intro?: React.ReactNode; sections: LegalSection[] }) {
+  const other = title === "Privacy policy" ? { href: "/terms", t: "Terms of use" } : { href: "/privacy", t: "Privacy policy" };
   return (
-    <section className="bg-surface">
-      <div className={cn(container, "pt-14 pb-24 lg:pt-20")}>
-        <p className={type.context}>Legal</p>
-        <h1 className={cn(type.hero, "mt-4")}>{title}</h1>
-        <p className="mt-4 text-[15px] text-subtle">
-          Last updated {updated}.{" "}
-          <Link href={title === "Privacy policy" ? "/terms" : "/privacy"} className="underline underline-offset-2 hover:text-ink">
-            {title === "Privacy policy" ? "Terms of use" : "Privacy policy"}
+    <>
+      <PageHero crumbs={[{ href: "/", label: "Home" }, { label: "Legal" }, { label: title }]} title={title} lead={intro}>
+        <p className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-[15px] text-[#3d4a60]">
+          <span>
+            Effective <time className="tnum font-semibold text-[#0b1b33]">{updated}</time>
+          </span>
+          <Link href={other.href} className={`${ui.link} inline-flex items-center gap-1.5 no-underline hover:underline`}>
+            Read our {other.t.toLowerCase()}
+            <IconArrowRight size={15} />
           </Link>
         </p>
-        {intro && <div className="mt-6 max-w-[70ch] text-[17px] leading-relaxed text-muted">{intro}</div>}
+      </PageHero>
 
-        <div className="mt-12 grid gap-12 lg:grid-cols-[240px_1fr] lg:gap-16">
-          <nav aria-label="On this page" className="lg:sticky lg:top-24 lg:self-start">
-            <p className="text-[13px] font-semibold text-ink">On this page</p>
-            <ol className="mt-3 space-y-1.5 border-l border-line text-[14px]">
+      <section className="bg-white">
+        <div className={`${wrap} grid gap-10 py-12 lg:grid-cols-12 lg:gap-12 lg:py-16`}>
+          <nav aria-label="On this page" className="lg:sticky lg:top-[96px] lg:col-span-3 lg:self-start">
+            <p className="text-[14px] font-semibold text-[#0b1b33]">On this page</p>
+            <ol className="mt-3 border-l border-[#dfe3ea]">
               {sections.map((s) => (
                 <li key={s.id}>
-                  <a href={`#${s.id}`} className="-ml-px block border-l-2 border-transparent py-0.5 pl-4 text-muted hover:border-brand hover:text-ink">
+                  <a
+                    href={`#${s.id}`}
+                    className="-ml-px block border-l border-transparent py-1.5 pl-4 text-[15px] leading-snug text-[#3d4a60] transition-colors hover:border-[#2558e0] hover:text-[#1d47c0]"
+                  >
                     {s.title}
                   </a>
                 </li>
@@ -37,16 +46,19 @@ export function LegalPage({ title, updated, intro, sections }: { title: string; 
             </ol>
           </nav>
 
-          <article className="max-w-[70ch] space-y-12 text-[16px] leading-relaxed text-ink-2 [&_li]:pl-1 [&_p+p]:mt-4 [&_p+ul]:mt-3 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5 [&_ul+p]:mt-4">
-            {sections.map((s) => (
-              <section key={s.id} id={s.id} className="scroll-mt-24">
-                <h2 className="mb-4 text-[22px] font-semibold tracking-[-0.015em] text-ink">{s.title}</h2>
-                {s.body}
-              </section>
-            ))}
-          </article>
+          <div className="lg:col-span-8 lg:col-start-5">
+            <article className="max-w-[68ch] text-[17px] leading-[1.7] text-[#26324a] [&_a]:font-semibold [&_a]:text-[#2558e0] [&_a]:underline [&_a]:decoration-[#2558e0]/40 [&_a]:underline-offset-4 [&_a:hover]:text-[#1d47c0] [&_li]:pl-1.5 [&_li::marker]:text-[#5f6b80] [&_p+p]:mt-4 [&_p+ul]:mt-3 [&_strong]:font-semibold [&_strong]:text-[#0b1b33] [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5 [&_ul+p]:mt-4">
+              {sections.map((s, i) => (
+                <section key={s.id} id={s.id} className={i === 0 ? "scroll-mt-[96px]" : "mt-10 scroll-mt-[96px] border-t border-[#dfe3ea] pt-10"}>
+                  <h2 className="mb-4 text-[22px] leading-snug font-semibold tracking-[-0.01em] text-[#0b1b33]">{s.title}</h2>
+                  {s.body}
+                </section>
+              ))}
+            </article>
+
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

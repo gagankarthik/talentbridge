@@ -1,24 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { cn } from "@/lib/cn";
+import { useMemo, useState } from "react";
 import { relativeAgo } from "@/lib/format";
 import { useDemoNow } from "@/lib/clock";
 import { STAFF, STAFF_ROLES, type StaffMember, type StaffRole } from "@/lib/platform";
 import { useWorkspace } from "@/lib/workspace-store";
+import { PageHeader } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
 import { Modal } from "@/components/ui/overlay";
-import { useAdmin } from "./admin-store";
 import { Select } from "@/components/ui/select";
+import { FitTable, type FitColumn } from "./fit-table";
+import { ListToolbar } from "./list-toolbar";
+import { EmptyState } from "@/components/ui/data-display";
+import { Pagination, usePage } from "@/components/ui/pagination";
+import { IconPlus, IconUsers } from "@/components/icons";
+import { useAdmin } from "./admin-store";
+import { Avatar, PageBody, Panel } from "./ui";
 
 const roleName = (r: StaffRole) => STAFF_ROLES.find((x) => x.id === r)!.name;
+const ROLE_OPTIONS = STAFF_ROLES.map((r) => ({ value: r.id, label: r.name, hint: r.summary }));
 
 export function TeamView() {
   const { orgs } = useAdmin();
   const { notify } = useWorkspace();
   const now = useDemoNow(60_000);
   const [staff, setStaff] = useState<StaffMember[]>(STAFF);
+  const [q, setQ] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | StaffRole>("all");
+  const [sort, setSort] = useState<"name" | "active">("name");
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -36,75 +46,134 @@ export function TeamView() {
     setErr(null);
   };
 
-  return (
-    <div className="space-y-5 px-4 py-5 sm:px-6">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {STAFF_ROLES.map((r) => (
-          <div key={r.id} className="rounded-[12px] bg-surface p-4 ring-1 ring-line">
-            <p className="flex items-baseline justify-between gap-2">
-              <span className="text-[14px] font-semibold text-ink">{r.name}</span>
-              <span className="tnum text-xs text-subtle">{staff.filter((s) => s.role === r.id).length}</span>
-            </p>
-            <p className="mt-1 text-[12.5px] leading-snug text-subtle">{r.summary}</p>
-          </div>
-        ))}
-      </div>
+  const list = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    return staff
+      .filter((s) => (roleFilter === "all" || s.role === roleFilter) && (!n || `${s.name} ${s.email}`.toLowerCase().includes(n)))
+      .sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name) : b.lastActive.localeCompare(a.lastActive)));
+  }, [staff, q, roleFilter, sort]);
+  const pager = usePage(list, 25, `${q}|${roleFilter}`);
 
-      <section className="rounded-[12px] bg-surface ring-1 ring-line">
-        <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-          <h2 className="text-[14.5px] font-semibold text-ink">Team members</h2>
+  const cols: FitColumn<StaffMember>[] = [
+    {
+      key: "name",
+      header: "Name",
+      width: "minmax(260px,2fr)",
+      cell: (s) => (
+        <span className="flex min-w-0 items-center gap-3">
+          <Avatar name={s.name} size={32} />
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-ink">{s.name}</span>
+            <span className="block truncate text-[13px] text-subtle">{s.email}</span>
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "role",
+      header: "Role",
+      width: "minmax(220px,1.2fr)",
+      cell: (s) => (
+        <Select
+          label={`Role for ${s.name}`}
+          value={s.role}
+          options={ROLE_OPTIONS}
+          onValueChange={(r) => {
+            setStaff((xs) => xs.map((x) => (x.id === s.id ? { ...x, role: r } : x)));
+            notify({ tone: "ok", title: `${s.name} is now ${roleName(r)}` });
+          }}
+        />
+      ),
+    },
+    {
+      key: "scope",
+      priority: 2,
+      header: "Organizations",
+      width: "minmax(240px,1.6fr)",
+      cell: (s) => {
+        if (s.role !== "client_partner") return <span className="text-muted">All organizations</span>;
+        const os = orgs.filter((o) => o.clientPartner === s.name);
+        if (!os.length) return <span className="text-subtle">None assigned</span>;
+        return (
+          <span className="truncate text-muted" title={os.map((o) => o.name).join(", ")}>
+            {os[0].name}
+            {os.length > 1 && <span className="text-subtle"> and {os.length - 1} more</span>}
+          </span>
+        );
+      },
+    },
+    {
+      key: "last",
+      priority: 1,
+      header: "Last active",
+      width: "minmax(112px,0.7fr)",
+      align: "end",
+      cell: (s) => <span className="whitespace-nowrap text-subtle">{relativeAgo(s.lastActive, now)}</span>,
+    },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        title="Platform team"
+        description="TalentBridge staff with access to the console. Role changes are written to the audit log."
+        actions={
           <Button variant="primary" onClick={() => setOpen(true)}>
+            <IconPlus size={16} />
             Invite team member
           </Button>
-        </header>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-[13.5px]">
-            <thead className="bg-canvas text-xs text-subtle">
-              <tr className="border-b border-line">
-                <th className="px-5 py-2.5 font-medium">Name</th>
-                <th className="py-2.5 font-medium">Role</th>
-                <th className="py-2.5 font-medium">Assigned organizations</th>
-                <th className="px-5 py-2.5 font-medium">Last active</th>
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((s) => (
-                <tr key={s.id} className="border-b border-line last:border-0">
-                  <td className="px-5 py-3">
-                    <span className="block font-medium text-ink">{s.name}</span>
-                    <span className="block text-xs text-subtle">{s.email}</span>
-                  </td>
-                  <td className="py-3">
-                    <Select
-                      size="sm"
-                      label={`Role for ${s.name}`}
-                      value={s.role}
-                      options={STAFF_ROLES.map((r) => ({ value: r.id, label: r.name }))}
-                      onValueChange={(r) => {
-                        setStaff((xs) => xs.map((x) => (x.id === s.id ? { ...x, role: r } : x)));
-                        notify({ tone: "ok", title: `${s.name} is now ${roleName(r)}` });
-                      }}
-                    />
-                  </td>
-                  <td className={cn("py-3", s.role === "client_partner" ? "text-ink-2" : "text-subtle")}>
-                    {s.role === "client_partner" ? orgs.filter((o) => o.clientPartner === s.name).map((o) => o.name).join(", ") || "None yet" : "All organizations"}
-                  </td>
-                  <td className="tnum px-5 py-3 text-subtle">{relativeAgo(s.lastActive, now)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        }
+      />
+      <PageBody>
+        <Panel>
+          <ListToolbar
+            noun="team members"
+            summary={list.length}
+            onClearAll={() => {
+              setQ("");
+              setRoleFilter("all");
+            }}
+            search={{ value: q, onChange: setQ, placeholder: "Search name or email" }}
+            sort={{
+              value: sort,
+              onChange: (v) => setSort(v as typeof sort),
+              options: [
+                { value: "name", label: "Name" },
+                { value: "active", label: "Last active" },
+              ],
+            }}
+            filters={[
+              {
+                key: "role",
+                label: "Role",
+                value: roleFilter,
+                onChange: (v) => setRoleFilter(v as typeof roleFilter),
+                options: [
+                  { value: "all", label: "All roles", meta: staff.length },
+                  ...STAFF_ROLES.map((r) => ({ value: r.id, label: r.name, meta: staff.filter((s) => s.role === r.id).length })),
+                ],
+              },
+            ]}
+          />
+          <FitTable
+            caption="Platform team"
+            rows={pager.rows}
+            columns={cols}
+            rowKey={(s) => s.id}
+            empty={<EmptyState icon={<IconUsers size={18} />} title="Nobody matches" description="Try another name, or clear the role filter." />}
+          />
+          <Pagination {...pager} noun="team members" />
+        </Panel>
+      </PageBody>
 
       <Modal
         open={open}
         onOpenChange={setOpen}
-        title="Invite a platform team member"
+        title="Invite a team member"
         description="Platform roles can see across customer organizations, so only invite TalentBridge staff."
         footer={
           <>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
+            <Button variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button variant="primary" onClick={add}>
@@ -113,23 +182,23 @@ export function TeamView() {
           </>
         }
       >
-        <div className="space-y-4">
-          <Field label="Name" htmlFor="t-name">
+        <div className="space-y-5">
+          <Field label="Name" htmlFor="t-name" required>
             <Input id="t-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           </Field>
-          <Field label="Work email" htmlFor="t-email">
+          <Field label="Work email" htmlFor="t-email" required>
             <Input id="t-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@talentbridge.com" />
           </Field>
-          <Field label="Role" htmlFor="t-role">
-            <Select id="t-role" value={role} onValueChange={setRole} className="w-full" options={STAFF_ROLES.map((r) => ({ value: r.id, label: r.name, hint: r.summary }))} />
+          <Field label="Role" htmlFor="t-role" hint={STAFF_ROLES.find((r) => r.id === role)!.summary}>
+            <Select id="t-role" value={role} onValueChange={setRole} className="w-full" options={ROLE_OPTIONS} />
           </Field>
           {err && (
-            <p role="alert" className="text-[13px] text-flag-ink">
+            <p role="alert" className="text-[13px] font-medium text-[#b42318]">
               {err}
             </p>
           )}
         </div>
       </Modal>
-    </div>
+    </>
   );
 }

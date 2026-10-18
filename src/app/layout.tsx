@@ -1,13 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import { Providers } from "./providers";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-// Editorial display serif for large marketing statements only
-const display = Newsreader({ variable: "--font-newsreader", subsets: ["latin"], weight: ["300", "400"], style: ["normal", "italic"] });
+// Brand face (General Sans, Fontshare free licence): marketing site, logo and display type
+const general = localFont({
+  variable: "--font-general",
+  display: "swap",
+  src: [
+    { path: "./fonts/GeneralSans-400.woff2", weight: "400" },
+    { path: "./fonts/GeneralSans-500.woff2", weight: "500" },
+    { path: "./fonts/GeneralSans-600.woff2", weight: "600" },
+    { path: "./fonts/GeneralSans-700.woff2", weight: "700" },
+  ],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -29,14 +39,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#071a14",
+  themeColor: "#0b1b33",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${general.variable} h-full`}>
       <body className="min-h-full">
         <Providers>{children}</Providers>
       </body>

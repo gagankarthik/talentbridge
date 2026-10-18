@@ -1,13 +1,11 @@
-import { container, cta, section, type } from "@/components/site/styles";
-import { cn } from "@/lib/cn";
-import { CONTACT } from "@/lib/company";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { CountUp, Reveal } from "@/components/motion";
-import { ScrollFillText } from "@/components/scroll-fill-text";
-import { Workflow } from "@/features/landing/workflow";
-import { ContactCta } from "@/features/site/contact-cta";
+import { CONTACT } from "@/lib/company";
+import { cn } from "@/lib/cn";
+import { card, container, cta, headGap, section, type } from "@/components/site/styles";
+import { Reveal } from "@/components/motion";
+import { IconChevronRight, IconMail, IconPhone } from "@/components/icons";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/company" },
@@ -16,130 +14,192 @@ export const metadata: Metadata = {
 };
 
 const PRINCIPLES = [
-  { t: "Verified, not claimed", d: "We confirm work authorization, delivery history and availability ourselves. Nothing on a profile is taken on trust.", tone: "bg-acc-cobalt" },
-  { t: "Fast because we prepared", d: "Profiles are ready before the requisition arrives, which is how we deliver shortlists in a day and starts in 48 hours.", tone: "bg-acc-violet" },
-  { t: "Fair to consultants", d: "Clear rates, private profiles and one screen that opens many doors. Consultants who are treated well stay and deliver.", tone: "bg-acc-teal" },
-  { t: "Your client stays yours", d: "Redacted profiles and client-scoped holds protect the relationships our agency partners have built.", tone: "bg-acc-plum" },
+  { t: "Verified, not claimed", d: "We confirm work authorization, delivery history and availability ourselves. Nothing on a profile is taken on trust." },
+  { t: "Fast because we prepared", d: "Profiles are ready before the requisition arrives, which is how we deliver shortlists in a day and starts in 48 hours." },
+  { t: "Fair to engineers", d: "Clear rates, private profiles and one screen that opens many doors. Engineers who are treated well stay and deliver." },
+  { t: "Your client stays yours", d: "Redacted profiles and client-scoped holds protect the relationships our agency partners have built." },
+];
+
+/** The vetting standard as a real table: what each check is, how long it takes and who runs it. */
+const STANDARD = [
+  { check: "Technical panel", when: "90 minutes", who: "A senior engineer from the same discipline", what: "System design, hands-on coding, domain depth and communication, each scored" },
+  { check: "Compliance", when: "Before any presentation", who: "Our compliance team", what: "E-Verify match, I-9 review, background check and three professional references" },
+  { check: "Availability", when: "Every 7 days", who: "The engineer, confirmed by us", what: "Anyone who doesn't re-confirm is held back from the bench" },
+  { check: "Deployment", when: "Within 48 hours", who: "Your client partner", what: "Contract, onboarding and first day, once you choose" },
+];
+
+const FIGURES = [
+  { v: "48 hours", l: "from selection to the first day" },
+  { v: "1 business day", l: "to a matched, redacted shortlist" },
+  { v: "4 checks", l: "before any profile is presented" },
+  { v: "2 weeks", l: "free replacement window" },
 ];
 
 export default function CompanyPage() {
-
   return (
     <>
-      <section className="bg-surface">
-        <div className={cn(container, "pt-14 pb-16 lg:pt-20")}>
-          <p className="text-[14px] font-semibold text-brand">About TalentBridge</p>
-          <h1 className={cn(type.hero, "mt-4 max-w-[16ch]")}>
-            We built the bench we always wanted to submit from.
-          </h1>
-          <div className="mt-10 grid gap-8 border-t border-line pt-8 lg:grid-cols-2">
-            <p className="max-w-[36em] text-[18px] leading-relaxed text-muted">
-              Tech staffing usually means reading hundreds of resumes, chasing references and discovering on day one that a candidate&apos;s visa has lapsed. We do that
-              work before anyone asks, so our clients and agency partners get engineers who are ready to start.
+      {/* Page hero */}
+      <section className="border-b border-[#dfe3ea] bg-white">
+        <div className={cn(container, "grid gap-10 py-12 lg:grid-cols-12 lg:items-center lg:gap-12 lg:py-16")}>
+          <div className="lg:col-span-7">
+            <nav aria-label="Breadcrumb">
+              <ol className="flex items-center gap-1.5 text-[14px] text-muted">
+                <li>
+                  <Link href="/" className="hover:text-brand">
+                    Home
+                  </Link>
+                </li>
+                <IconChevronRight size={14} aria-hidden="true" />
+                <li aria-current="page" className="font-medium text-ink">
+                  Company
+                </li>
+              </ol>
+            </nav>
+            <h1 className={cn(type.hero, "mt-6")}>A staffing partner built on a verified bench.</h1>
+            <p className={cn(type.lede, "mt-5 max-w-[36em]")}>
+              Tech staffing usually means reading hundreds of resumes, chasing references and discovering on day one that a visa has lapsed. We do that work before
+              anyone asks, so our clients and agency partners get engineers who are ready to start.
             </p>
-            <div className="flex flex-wrap items-end gap-3 lg:justify-end">
-              <ContactCta label="Work with us" />
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/contact" className={cta.primary}>
+                Work with us
+              </Link>
               <Link href="/careers" className={cta.outline}>
-                Join as a consultant
+                Join as an engineer
               </Link>
             </div>
           </div>
-          <div className="mt-12 grid gap-4 sm:grid-cols-[1.6fr_1fr]">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] sm:aspect-auto sm:min-h-[420px]">
-              <Image src="/images/office-standup.jpg" alt="TalentBridge team in a morning standup" fill priority sizes="(min-width: 640px) 60vw, 100vw" className="object-cover" />
+          {/* Full-colour photo with what clients can hold us to, set on its lower-left corner */}
+          <div className="lg:col-span-5">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-[12px] bg-[#f5f7fa] lg:aspect-[4/5]">
+              <Image src="/images/office-standup.jpg" alt="The TalentBridge delivery team in a morning standup" fill priority sizes="(min-width: 1024px) 520px, 100vw" className="object-cover" />
             </div>
-            <div className="grid gap-4">
-              <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] sm:aspect-auto">
-                <Image src="/images/office-interior.jpg" alt="" fill sizes="(min-width: 640px) 40vw, 100vw" className="object-cover" />
+            <dl className={cn(card, "relative mx-4 -mt-16 divide-y divide-[#dfe3ea] shadow-[0_12px_32px_-8px_rgb(11_27_51/0.18)] sm:mr-auto sm:ml-6 sm:max-w-[320px]")}>
+              <div className="px-5 py-3">
+                <dt className="text-[13px] font-semibold text-ink-2">What clients can hold us to</dt>
               </div>
-              <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] sm:aspect-auto">
-                <Image src="/images/client-briefing.jpg" alt="" fill sizes="(min-width: 640px) 40vw, 100vw" className="object-cover" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-night text-white">
-        <dl className={cn(container, "grid grid-cols-2 gap-y-10 py-16 lg:grid-cols-4")}>
-          {[
-            { v: 48, s: "h", l: "From selection to first day" },
-            { v: 1, s: " day", l: "To a matched shortlist" },
-            { v: 4, s: "", l: "Checks before any presentation" },
-            { v: 2, s: " wks", l: "Free replacement window" },
-          ].map((x) => (
-            <div key={x.l}>
-              <dd className="font-display text-[56px] leading-none font-light tracking-[-0.03em]">
-                <CountUp value={x.v} suffix={x.s} />
-              </dd>
-              <dt className="mt-3 max-w-[14em] text-[14px] text-slate-400">{x.l}</dt>
-            </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className="bg-surface">
-        <div className={cn(container, section)}>
-          <ScrollFillText
-            as="p"
-            text="Every engineer we present has been screened by an engineer, verified by our compliance team and confirmed available in the last seven days."
-            className="max-w-5xl text-[36px] leading-[1.12] font-light tracking-[-0.02em] sm:text-[56px]"
-          />
-        </div>
-      </section>
-
-      <section className="bg-canvas">
-        <div className={cn(container, section)}>
-          <Reveal>
-            <h2 className={type.h2}>What we stand for</h2>
-          </Reveal>
-          <Reveal stagger className="mt-12 grid gap-5 md:grid-cols-2">
-            {PRINCIPLES.map((p) => (
-              <article key={p.t} className="flex gap-6 rounded-[20px] bg-surface p-8 ring-1 ring-line">
-                <span className={`mt-1 h-12 w-1.5 shrink-0 rounded-full ${p.tone}`} />
-                <div>
-                  <h3 className="text-[21px] font-semibold tracking-[-0.015em]">{p.t}</h3>
-                  <p className="mt-2 text-[15.5px] leading-relaxed text-muted">{p.d}</p>
+              {FIGURES.map((x) => (
+                <div key={x.l} className="flex items-baseline justify-between gap-4 px-5 py-3">
+                  <dt className="text-[14px] text-ink-2 first-letter:uppercase">{x.l}</dt>
+                  <dd className="tnum shrink-0 text-right text-[15px] font-semibold text-ink">{x.v}</dd>
                 </div>
-              </article>
-            ))}
-          </Reveal>
-        </div>
-      </section>
-
-      <section id="vetting" className="scroll-mt-24 bg-surface">
-        <div className={cn(container, section)}>
-          <Reveal className="grid gap-6 lg:grid-cols-2 lg:items-end">
-            <h2 className={type.h2}>Our vetting standard</h2>
-            <p className="max-w-lg text-[17px] leading-relaxed text-muted lg:justify-self-end">
-              The same four checks apply to every consultant, whether they&apos;re placed directly with an enterprise or submitted by one of our agency partners.
-            </p>
-          </Reveal>
-          <Reveal className="mt-12">
-            <Workflow />
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="bg-paper">
-        <div className={cn(container, section, "grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-center")}>
-          <div>
-            <p className={type.context}>Head office</p>
-            <h2 className={cn(type.h2, "mt-3")}>{CONTACT.office}</h2>
-            <p className={cn(type.lede, "mt-4 max-w-md")}>Our client partners, talent operations and compliance team work from one office, so a requisition never waits on a handoff.</p>
+              ))}
+            </dl>
           </div>
-          <dl className="grid gap-px overflow-hidden rounded-[16px] bg-line ring-1 ring-line sm:grid-cols-3">
-            {[
-              ["Call", CONTACT.phone, `tel:${CONTACT.tel}`],
-              ["Email", CONTACT.email, `mailto:${CONTACT.email}`],
-              ["Hours", "Mon–Fri, 8:00 AM–5:00 PM EST", ""],
-            ].map(([k, v, href]) => (
-              <div key={k} className="bg-surface p-5">
-                <dt className="text-[13px] text-subtle">{k}</dt>
-                <dd className="mt-1 text-[15px] font-semibold break-words text-ink">{href ? <a href={href} className="hover:text-brand">{v}</a> : v}</dd>
+        </div>
+      </section>
+
+      {/* Principles */}
+      <section aria-labelledby="pr-h" className="bg-[#eef3fd]">
+        <div className={cn(container, section, "grid gap-10 lg:grid-cols-12 lg:gap-12")}>
+          <Reveal className="lg:col-span-4">
+            <h2 id="pr-h" className={type.h2}>
+              Four principles we work by
+            </h2>
+            <p className={cn(type.body, "mt-4 max-w-[34ch]")}>They decide how we screen engineers, price engagements and treat the partners we work with.</p>
+          </Reveal>
+          <dl className={cn(card, "grid divide-y divide-[#dfe3ea] sm:grid-cols-2 sm:divide-y-0 lg:col-span-8")}>
+            {PRINCIPLES.map((p, i) => (
+              <div key={p.t} className={cn("p-6 sm:p-8", i % 2 === 1 && "sm:border-l sm:border-[#dfe3ea]", i > 1 && "sm:border-t sm:border-[#dfe3ea]")}>
+                <dt className="text-[19px] font-semibold text-ink">{p.t}</dt>
+                <dd className="mt-2 text-[16px] leading-[1.6] text-ink-2">{p.d}</dd>
               </div>
             ))}
           </dl>
+        </div>
+      </section>
+
+      {/* The vetting standard: a real table, because it is one */}
+      <section id="vetting" aria-labelledby="vet-h" className="scroll-mt-20 bg-navy text-white">
+        <div className={cn(container, section)}>
+          <Reveal className="grid gap-5 lg:grid-cols-12 lg:items-end">
+            <h2 id="vet-h" className={cn(type.h2, "text-white lg:col-span-7")}>
+              Our vetting standard
+            </h2>
+            <p className={cn(type.body, "max-w-[44ch] text-[#c3cbd9] lg:col-span-5")}>
+              The same four checks apply to every engineer, whether placed directly with an enterprise or submitted by one of our agency partners.
+            </p>
+          </Reveal>
+
+          <dl className={cn(headGap, "space-y-4 lg:hidden")}>
+            {STANDARD.map((r) => (
+              <div key={r.check} className={cn(card, "p-6")}>
+                <dt className="text-[19px] font-semibold text-ink">{r.check}</dt>
+                <dd className="tnum mt-1 text-[15px] font-semibold text-brand">{r.when}</dd>
+                <dd className="mt-3 text-[16px] leading-[1.6] text-ink">{r.what}</dd>
+                <dd className="mt-2 text-[15px] text-ink-2">Run by {r.who.charAt(0).toLowerCase() + r.who.slice(1)}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className={cn(headGap, card, "hidden overflow-hidden lg:block")}>
+            <table className="w-full text-left">
+              <caption className="sr-only">The four checks every engineer passes</caption>
+              <thead className="bg-[#f5f7fa] text-[14px] text-ink-2">
+                <tr>
+                  <th scope="col" className="px-6 py-3.5 font-semibold">
+                    Check
+                  </th>
+                  <th scope="col" className="px-6 py-3.5 font-semibold">
+                    When
+                  </th>
+                  <th scope="col" className="px-6 py-3.5 font-semibold">
+                    Run by
+                  </th>
+                  <th scope="col" className="px-6 py-3.5 font-semibold">
+                    What it covers
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {STANDARD.map((r) => (
+                  <tr key={r.check} className="border-t border-[#dfe3ea] align-top">
+                    <th scope="row" className="px-6 py-5 text-[17px] font-semibold text-ink">
+                      {r.check}
+                    </th>
+                    <td className="tnum px-6 py-5 text-[16px] font-semibold whitespace-nowrap text-brand">{r.when}</td>
+                    <td className="px-6 py-5 text-[16px] text-ink-2">{r.who}</td>
+                    <td className="max-w-[46ch] px-6 py-5 text-[16px] leading-[1.6] text-ink">{r.what}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Head office */}
+      <section aria-labelledby="office-h" className="bg-white">
+        <div className={cn(container, section, "grid gap-10 lg:grid-cols-12 lg:items-center lg:gap-12")}>
+          <div className="lg:col-span-5">
+            <h2 id="office-h" className={type.h2}>
+              Head office in {CONTACT.office}
+            </h2>
+            <p className={cn(type.body, "mt-4 max-w-[40ch]")}>
+              Client partners, talent operations and compliance work side by side, so a requisition never waits on a handoff.
+            </p>
+            <ul className="mt-8 space-y-3 text-[16px]">
+              <li>
+                <a href={`tel:${CONTACT.tel}`} className="tnum inline-flex items-center gap-2.5 font-medium text-ink hover:text-brand">
+                  <IconPhone size={18} className="text-brand" />
+                  {CONTACT.phone}
+                </a>
+              </li>
+              <li>
+                <a href={`mailto:${CONTACT.email}`} className="inline-flex items-center gap-2.5 font-medium text-ink hover:text-brand">
+                  <IconMail size={18} className="text-brand" />
+                  {CONTACT.email}
+                </a>
+              </li>
+            </ul>
+            <p className="mt-4 text-[15px] text-ink-2">{CONTACT.hours}. We reply within one business day.</p>
+            <Link href="/contact" className={cn(cta.primary, "mt-8")}>
+              Contact us
+            </Link>
+          </div>
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[12px] bg-[#f5f7fa] lg:col-span-7">
+            <Image src="/images/office-interior.jpg" alt="Inside the TalentBridge office" fill sizes="(min-width: 1024px) 700px, 100vw" className="object-cover" />
+          </div>
         </div>
       </section>
     </>

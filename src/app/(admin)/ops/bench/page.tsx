@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { candidates } from "@/lib/data";
 import { complianceIssues } from "@/lib/compliance";
-import { PageHeader } from "@/components/layout/app-shell";
 import { BenchBoard, type BenchCard } from "@/features/ops/bench-board";
 
 export const metadata: Metadata = { title: "Bench tracker" };
@@ -24,12 +23,5 @@ export default function BenchPage() {
     };
   });
 
-  return (
-    <>
-      <PageHeader
-        title="Bench tracker"
-      />
-      <BenchBoard initial={cards} />
-    </>
-  );
+  return <BenchBoard initial={cards} />;
 }

@@ -1,42 +1,24 @@
 "use client";
 
-import * as Switch from "@radix-ui/react-checkbox";
 import { useState } from "react";
-import { cn } from "@/lib/cn";
 import { MEMBERS, ORG_ROLES, ORGANIZATION } from "@/lib/org";
 import { useWorkspace } from "@/lib/workspace-store";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
 import { Modal } from "@/components/ui/overlay";
-import { Pill } from "@/components/ui/status";
+import { DetailSection } from "@/components/ui/data-display";
+import { Tag } from "@/components/ui/status";
 import { Select } from "@/components/ui/select";
+import { SettingRow, Switch } from "@/components/ui/switch";
 
 const ME = MEMBERS[0];
 
-function Card({ id, title, children, footer }: { id?: string; title: string; children: React.ReactNode; footer?: React.ReactNode }) {
-  return (
-    <section id={id} className="scroll-mt-24 rounded-[12px] bg-surface ring-1 ring-line">
-      <h2 className="border-b border-line px-5 py-4 text-[15px] font-semibold text-ink">{title}</h2>
-      <div className="p-5">{children}</div>
-      {footer && <footer className="flex justify-end gap-2 border-t border-line bg-canvas/60 px-5 py-3">{footer}</footer>}
-    </section>
-  );
-}
-
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <Switch.Root checked={checked} onCheckedChange={(v) => onChange(v === true)} aria-label={label} className="relative h-6 w-11 shrink-0 rounded-full bg-line-strong transition-colors data-[state=checked]:bg-cobalt">
-      <span className={cn("absolute top-0.5 left-0.5 size-5 rounded-full bg-surface shadow transition-transform", checked && "translate-x-5")} />
-    </Switch.Root>
-  );
-}
-
 const NOTIFICATIONS = [
-  { key: "matches", title: "New matches for my open requisitions", def: true },
-  { key: "holds", title: "A hold is about to expire", def: true },
-  { key: "status", title: "A submission changes status", def: true },
-  { key: "digest", title: "Weekly bench digest", def: false },
-  { key: "product", title: "Product updates", def: false },
+  { key: "matches", title: "New matches for my open requisitions", body: "When a newly verified engineer fits a role you've searched for.", def: true },
+  { key: "holds", title: "A hold is about to expire", body: "Six hours and one hour before a 48-hour hold ends.", def: true },
+  { key: "status", title: "A submission changes status", body: "Interview scheduled, offer made, start confirmed.", def: true },
+  { key: "digest", title: "Weekly bench digest", body: "Monday morning summary of who's available by practice.", def: false },
+  { key: "product", title: "Product updates", body: "New features in the workspace, at most once a month.", def: false },
 ];
 
 const SESSIONS = [
@@ -54,44 +36,46 @@ export function ProfileSettings() {
   const [pw, setPw] = useState(false);
   const [sessions, setSessions] = useState(SESSIONS);
   const initials = name.split(" ").map((p) => p[0]).join("").slice(0, 2);
+  const roleName = ORG_ROLES.find((r) => r.id === ME.role)!.name;
 
   return (
-    <div className="grid gap-5 px-4 py-5 sm:px-6 xl:grid-cols-[1fr_360px]">
-      <div className="space-y-5">
-        <Card
+    <div className="mx-auto grid w-full max-w-[1440px] items-start gap-6 px-4 py-6 sm:px-8 sm:py-8 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="overflow-hidden rounded-lg border border-hair bg-surface">
+        {/* Identity */}
+        <div className="flex items-center gap-4 px-5 py-5 shadow-[inset_0_-1px_0_var(--color-hair)]">
+          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-cobalt-wash text-[16px] font-semibold text-cobalt-strong">{initials}</span>
+          <div className="min-w-0">
+            <p className="text-[16px] font-semibold text-ink">{name}</p>
+            <p className="text-[13px] text-subtle">
+              {title} · {roleName} at {ORGANIZATION.name}
+            </p>
+          </div>
+        </div>
+
+        <DetailSection
           title="Personal details"
-          footer={
-            <Button variant="primary" onClick={() => notify({ tone: "ok", title: "Profile saved" })}>
+          action={
+            <Button size="sm" variant="primary" onClick={() => notify({ tone: "ok", title: "Profile saved" })}>
               Save changes
             </Button>
           }
         >
-          <div className="flex items-center gap-4">
-            <span className="grid size-16 shrink-0 place-items-center rounded-full bg-night text-[20px] font-semibold text-brand-bright">{initials}</span>
-            <div>
-              <p className="text-[16px] font-semibold text-ink">{name}</p>
-              <p className="text-[13px] text-subtle">
-                {ORG_ROLES.find((r) => r.id === ME.role)!.name} at {ORGANIZATION.name}
-              </p>
-            </div>
-          </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name" htmlFor="p-name">
-              <Input inputSize="lg" id="p-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+              <Input id="p-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
             </Field>
             <Field label="Job title" htmlFor="p-title">
-              <Input inputSize="lg" id="p-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Input id="p-title" value={title} onChange={(e) => setTitle(e.target.value)} />
             </Field>
             <Field label="Work email" htmlFor="p-email" hint="Managed by your organization's sign-in.">
-              <Input inputSize="lg" id="p-email" value={ME.email} disabled className="bg-canvas text-muted" />
+              <Input id="p-email" value={ME.email} disabled className="bg-canvas text-ink-2" />
             </Field>
             <Field label="Phone" htmlFor="p-phone">
-              <Input inputSize="lg" id="p-phone" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+              <Input id="p-phone" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
             </Field>
             <Field label="Time zone" htmlFor="p-tz">
               <Select
                 id="p-tz"
-                size="lg"
                 className="w-full"
                 value={tz}
                 onValueChange={setTz}
@@ -104,85 +88,70 @@ export function ProfileSettings() {
               />
             </Field>
           </div>
-        </Card>
+        </DetailSection>
 
-        <Card id="notifications" title="Email notifications">
-          <ul className="-my-3 divide-y divide-line">
-            {NOTIFICATIONS.map((n) => (
-              <li key={n.key} className="flex items-center justify-between gap-6 py-3.5">
-                <span className="text-[14px] text-ink">{n.title}</span>
-                <Toggle
-                  checked={prefs[n.key]}
-                  label={n.title}
-                  onChange={(v) => {
-                    setPrefs((p) => ({ ...p, [n.key]: v }));
-                    notify({ tone: "ok", title: v ? "Notification turned on" : "Notification turned off", body: n.title });
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <DetailSection id="notifications" title="Email notifications" bodyClassName="px-5 pt-1 pb-3">
+          {NOTIFICATIONS.map((n) => (
+            <SettingRow key={n.key} title={n.title} description={n.body}>
+              <Switch
+                checked={prefs[n.key]}
+                label={n.title}
+                onChange={(v) => {
+                  setPrefs((p) => ({ ...p, [n.key]: v }));
+                  notify({ tone: "ok", title: v ? "Notification turned on" : "Notification turned off", body: n.title });
+                }}
+              />
+            </SettingRow>
+          ))}
+        </DetailSection>
       </div>
 
-      <div className="space-y-5">
-        <Card title="Security">
-          <dl className="space-y-4 text-[14px]">
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-ink">Password</dt>
-              <dd>
-                <Button size="sm" onClick={() => setPw(true)}>
-                  Change
-                </Button>
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-ink">Two-factor authentication</dt>
-              <dd>
-                <Pill tone="avail">On</Pill>
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <dt className="text-ink">Single sign-on</dt>
-              <dd className="text-[13px] text-subtle">{ORGANIZATION.sso.provider}</dd>
-            </div>
-          </dl>
-        </Card>
+      <div className="overflow-hidden rounded-lg border border-hair bg-surface">
+        <DetailSection title="Security" bodyClassName="px-5 pt-1 pb-3">
+          <SettingRow title="Password" description="Last changed 4 months ago.">
+            <Button size="sm" onClick={() => setPw(true)}>
+              Change
+            </Button>
+          </SettingRow>
+          <SettingRow title="Two-factor authentication">
+            <Tag tone="green" dot>
+              On
+            </Tag>
+          </SettingRow>
+          <SettingRow title="Single sign-on">
+            <span className="text-[13px] text-subtle">{ORGANIZATION.sso.provider}</span>
+          </SettingRow>
+        </DetailSection>
 
-        <Card title="Active sessions">
-          <ul className="-my-2 divide-y divide-line">
-            {sessions.map((s) => (
-              <li key={s.device} className="flex items-center justify-between gap-4 py-3">
-                <span>
-                  <span className="block text-[14px] font-medium text-ink">{s.device}</span>
-                  <span className="block text-xs text-subtle">
-                    {s.where}, {s.when}
-                  </span>
-                </span>
-                {s.current ? (
-                  <span className="text-xs font-medium text-avail-ink">This device</span>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setSessions((ss) => ss.filter((x) => x.device !== s.device));
-                      notify({ tone: "ok", title: `Signed out of ${s.device}` });
-                    }}
-                  >
-                    Sign out
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <DetailSection title="Active sessions" bodyClassName="px-5 pt-1 pb-3">
+          {sessions.map((s) => (
+            <SettingRow key={s.device} title={s.device} description={`${s.where} · ${s.when}`}>
+              {s.current ? (
+                <Tag tone="blue" size="sm">
+                  This device
+                </Tag>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSessions((ss) => ss.filter((x) => x.device !== s.device));
+                    notify({ tone: "ok", title: `Signed out of ${s.device}` });
+                  }}
+                >
+                  Sign out
+                </Button>
+              )}
+            </SettingRow>
+          ))}
+        </DetailSection>
       </div>
 
       <Modal
         open={pw}
         onOpenChange={setPw}
         title="Change password"
+        description="You'll stay signed in on this device. Other sessions are signed out."
         footer={
           <>
             <Button variant="ghost" onClick={() => setPw(false)}>

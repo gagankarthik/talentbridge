@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { candidates } from "@/lib/data";
 import { DISCIPLINES } from "@/lib/bench";
-import { PageHeader } from "@/components/layout/app-shell";
 import { RateDesk, type RateCardRow } from "@/features/ops/rate-desk";
 
 export const metadata: Metadata = { title: "Rate and margin" };
@@ -25,12 +24,5 @@ export default function RatesPage() {
     }),
   );
 
-  return (
-    <>
-      <PageHeader
-        title="Rates and margin"
-      />
-      <RateDesk rateCard={rateCard} />
-    </>
-  );
+  return <RateDesk rateCard={rateCard} />;
 }

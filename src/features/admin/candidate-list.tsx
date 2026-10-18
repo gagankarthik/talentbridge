@@ -1,30 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { cn } from "@/lib/cn";
 import { freshnessDays, FRESHNESS_WINDOW_DAYS, WORK_AUTH_SHORT } from "@/lib/format";
-import type { BenchStage, Candidate } from "@/lib/types";
-import { Input, Segmented } from "@/components/ui/form";
-import { Pill, type Tone } from "@/components/ui/status";
-import { Select } from "@/components/ui/select";
-import { IconPlus, IconSearch } from "@/components/icons";
+import type { BenchStage, Candidate, Discipline } from "@/lib/types";
+import { PageHeader } from "@/components/layout/app-shell";
+import { buttonClass } from "@/components/ui/button";
+import type { TagTone, Tone } from "@/components/ui/status";
+import { StatusDot, type StatusTone } from "@/components/ui/status-dot";
+import { FitTable, type FitColumn } from "./fit-table";
+import { ListToolbar } from "./list-toolbar";
+import { EmptyState } from "@/components/ui/data-display";
+import { Pagination, usePage } from "@/components/ui/pagination";
+import { IconPlus, IconUsers } from "@/components/icons";
 import { useAdmin } from "./admin-store";
 import { isListable, readiness } from "./candidate-form";
+import { Avatar, Meta, PageBody, Panel } from "./ui";
+import { useWorkspace } from "@/lib/workspace-store";
 
-export const STAGE_TONE: Record<BenchStage, Tone> = {
-  Onboarding: "notice",
-  Vetting: "cobalt",
-  Available: "avail",
-  Interview: "cobalt",
-  Placed: "placed",
+const STAGES: BenchStage[] = ["Onboarding", "Vetting", "Available", "Interview", "Placed"];
+export const stageLabel = (s: BenchStage) => (s === "Interview" ? "Client interview" : s);
+
+/** Bench stage → status tone (dot + text), shared with the bench board, queue and record. */
+export const STAGE_STATUS: Record<BenchStage, StatusTone> = {
+  Onboarding: "neutral",
+  Vetting: "info",
+  Available: "success",
+  Interview: "info",
+  Placed: "neutral",
 };
+/** Bench stage → Tag tone, kept for older imports */
+export const STAGE_TAG: Record<BenchStage, TagTone> = { Onboarding: "slate", Vetting: "blue", Available: "green", Interview: "blue", Placed: "slate" };
+/** Legacy pill tones, kept for older imports */
+export const STAGE_TONE: Record<BenchStage, Tone> = { Onboarding: "notice", Vetting: "cobalt", Available: "avail", Interview: "cobalt", Placed: "placed" };
 
 /** Seed records plus anything added or edited in this console. */
 export function useAllCandidates(seed: Candidate[]) {
   const { addedCandidates, candidateEdits } = useAdmin();
-  return useMemo(() => [...addedCandidates, ...seed.map((c) => (candidateEdits[c.id] ? { ...c, ...candidateEdits[c.id] } : c))], [seed, addedCandidates, candidateEdits]);
+  return useMemo(
+    () => [...addedCandidates, ...seed.map((c) => (candidateEdits[c.id] ? { ...c, ...candidateEdits[c.id] } : c))],
+    [seed, addedCandidates, candidateEdits],
+  );
 }
 
 export function nextCandidateCode(all: Candidate[]) {
@@ -32,10 +49,36 @@ export function nextCandidateCode(all: Candidate[]) {
   return `TC-${max + 7}`;
 }
 
-type Readiness = "all" | "visible" | "blocked";
+type Visibility = "all" | "visible" | "blocked";
+export const practiceLabel = (d: Discipline) => (d === "DevOps / Cloud" ? "Cloud & DevOps" : d);
+
+function Readiness({ c }: { c: Candidate }) {
+  const checks = readiness(c);
+  const done = checks.filter((k) => k.ok).length;
+  const blocking = checks.filter((k) => k.blocking && !k.ok);
+  if (blocking.length)
+    return (
+      <StatusDot tone="danger" title={blocking.map((k) => k.label).join(", ")}>
+        Blocked
+      </StatusDot>
+    );
+  if (done === checks.length) return <StatusDot tone="success">All {checks.length} checks</StatusDot>;
+  return (
+    <span
+      className="tnum text-muted"
+      title={checks
+        .filter((k) => !k.ok)
+        .map((k) => k.label)
+        .join(", ")}
+    >
+      {done} of {checks.length} checks
+    </span>
+  );
+}
 
 export function CandidateList({ seed }: { seed: Candidate[] }) {
   const all = useAllCandidates(seed);
+  const router = useRouter();
   const params = useSearchParams();
   const urlQ = params.get("q") ?? "";
   const [q, setQ] = useState(urlQ);
@@ -45,121 +88,220 @@ export function CandidateList({ seed }: { seed: Candidate[] }) {
     setQ(urlQ);
   }
   const [stage, setStage] = useState<"all" | BenchStage>("all");
-  const [ready, setReady] = useState<Readiness>("all");
+  const [vis, setVis] = useState<Visibility>("all");
+  const [practice, setPractice] = useState<"all" | Discipline>("all");
+  const [sort, setSort] = useState<"code" | "name" | "stale" | "rate">("code");
+  const { notify } = useWorkspace();
 
   const list = useMemo(() => {
     const n = q.trim().toLowerCase();
-    return all.filter(
-      (c) =>
-        (stage === "all" || c.benchStage === stage) &&
-        (ready === "all" || (ready === "visible" ? isListable(c) : !isListable(c) && c.benchStage !== "Placed")) &&
-        (!n || `${c.firstName} ${c.lastName} ${c.email} ${c.code} ${c.title} ${c.skills.map((s) => s.skill).join(" ")}`.toLowerCase().includes(n)),
-    );
-  }, [all, q, stage, ready]);
+    const order: Record<typeof sort, (a: Candidate, b: Candidate) => number> = {
+      code: (a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }),
+      name: (a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`),
+      stale: (a, b) => a.lastVerifiedAt.localeCompare(b.lastVerifiedAt),
+      rate: (a, b) => b.rateC2C - a.rateC2C,
+    };
+    return all
+      .filter(
+        (c) =>
+          (stage === "all" || c.benchStage === stage) &&
+          (practice === "all" || c.discipline === practice) &&
+          (vis === "all" || (vis === "visible" ? isListable(c) : !isListable(c) && c.benchStage !== "Placed")) &&
+          (!n || `${c.firstName} ${c.lastName} ${c.email} ${c.code} ${c.title} ${c.skills.map((s) => s.skill).join(" ")}`.toLowerCase().includes(n)),
+      )
+      .sort(order[sort]);
+  }, [all, q, stage, vis, practice, sort]);
+  const pager = usePage(list, 25, `${q}|${stage}|${vis}|${practice}`);
+
+  const cols: FitColumn<Candidate>[] = [
+    {
+      key: "who",
+      header: "Candidate",
+      width: "minmax(200px,1.8fr)",
+      cell: (c) => (
+        <Link href={`/admin/candidates/${c.code}`} onClick={(e) => e.stopPropagation()} className="group flex min-w-0 items-center gap-3">
+          <Avatar name={`${c.firstName} ${c.lastName}`} size={32} />
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-ink group-hover:text-cobalt group-hover:underline">
+              {c.firstName} {c.lastName}
+            </span>
+            <Meta
+              items={[
+                <span key="c" className="tnum font-medium text-muted">
+                  {c.code}
+                </span>,
+                c.email,
+              ]}
+            />
+          </span>
+        </Link>
+      ),
+    },
+    {
+      key: "role",
+      priority: 3,
+      header: "Role",
+      width: "minmax(200px,1.5fr)",
+      cell: (c) => (
+        <span className="min-w-0">
+          <span className="block truncate text-ink">{c.title}</span>
+          <Meta items={[`${c.yearsExperience} years`, practiceLabel(c.discipline)]} />
+        </span>
+      ),
+    },
+    {
+      key: "stage",
+      header: "Stage",
+      width: "minmax(130px,0.9fr)",
+      cell: (c) => <StatusDot tone={STAGE_STATUS[c.benchStage]}>{stageLabel(c.benchStage)}</StatusDot>,
+    },
+    {
+      key: "auth",
+      priority: 4,
+      header: "Work auth",
+      width: "minmax(110px,0.7fr)",
+      cell: (c) => <span className="text-muted">{WORK_AUTH_SHORT[c.workAuthorization]}</span>,
+    },
+    { key: "ready", header: "Readiness", width: "minmax(170px,1fr)", cell: (c) => <Readiness c={c} /> },
+    {
+      key: "rate",
+      priority: 5,
+      header: "C2C rate",
+      width: "minmax(96px,0.6fr)",
+      align: "end",
+      cell: (c) => (
+        <span className="text-ink">
+          ${c.rateC2C}
+          <span className="text-subtle">/hr</span>
+        </span>
+      ),
+    },
+    {
+      key: "fresh",
+      priority: 2,
+      header: "Confirmed",
+      width: "minmax(128px,0.7fr)",
+      align: "end",
+      cell: (c) => {
+        const d = freshnessDays(c.lastVerifiedAt);
+        const label = d === 0 ? "Today" : d === 1 ? "1 day ago" : `${d} days ago`;
+        return d >= FRESHNESS_WINDOW_DAYS ? <StatusDot tone="warning">{label}</StatusDot> : <span className="whitespace-nowrap text-subtle">{label}</span>;
+      },
+    },
+  ];
+
+  const clearAll = () => {
+    setQ("");
+    setStage("all");
+    setVis("all");
+    setPractice("all");
+  };
+
+  const exportCsv = () => {
+    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const rows = [
+      ["Code", "First name", "Last name", "Email", "Title", "Practice", "Stage", "Work authorization", "C2C rate", "W2 rate", "Last confirmed"],
+      ...list.map((c) => [
+        c.code,
+        c.firstName,
+        c.lastName,
+        c.email,
+        c.title,
+        practiceLabel(c.discipline),
+        stageLabel(c.benchStage),
+        WORK_AUTH_SHORT[c.workAuthorization],
+        c.rateC2C,
+        c.rateW2,
+        c.lastVerifiedAt.slice(0, 10),
+      ]),
+    ];
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([rows.map((r) => r.map(esc).join(",")).join("\n")], { type: "text/csv" }));
+    a.download = `candidates-${list.length}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    notify({ tone: "ok", title: `Exported ${list.length} candidates` });
+  };
 
   return (
-    <div className="space-y-4 px-4 py-5 sm:px-6">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-        <div className="relative min-w-0 lg:flex-1">
-          <IconSearch size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-subtle" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email, code or skill" aria-label="Search candidates" className="pl-9" />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            label="Stage"
-            prefix="Stage:"
-            value={stage}
-            onValueChange={setStage}
-            options={[{ value: "all", label: "All" }, ...(["Onboarding", "Vetting", "Available", "Interview", "Placed"] as BenchStage[]).map((s) => ({ value: s, label: s === "Interview" ? "Client interview" : s }))]}
-          />
-          <Segmented
-            label="Customer visibility"
-            value={ready}
-            onChange={setReady}
-            options={[
-              { value: "all", label: "All" },
-              { value: "visible", label: "Visible" },
-              { value: "blocked", label: "Not visible" },
-            ]}
-          />
-          <Link href="/admin/candidates/new" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-ctl bg-cobalt px-3.5 text-sm font-medium text-white hover:bg-cobalt-strong">
-            <IconPlus size={15} />
+    <>
+      <PageHeader
+        title="Candidates"
+        description="Internal records with names and contact details. Customers only ever see the blind profile."
+        actions={
+          <Link href="/admin/candidates/new" className={buttonClass("primary", "md")}>
+            <IconPlus size={16} />
             Add candidate
           </Link>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto rounded-[12px] bg-surface ring-1 ring-line">
-        <table className="w-full min-w-[900px] text-left text-[13.5px]">
-          <thead className="bg-canvas text-xs text-subtle">
-            <tr className="border-b border-line whitespace-nowrap">
-              <th className="px-5 py-2.5 font-medium">Candidate</th>
-              <th className="py-2.5 font-medium">Role</th>
-              <th className="py-2.5 font-medium">Stage</th>
-              <th className="py-2.5 font-medium">Work auth</th>
-              <th className="py-2.5 font-medium">Readiness</th>
-              <th className="py-2.5 text-right font-medium">C2C / W2</th>
-              <th className="px-5 py-2.5 text-right font-medium">Confirmed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((c) => {
-              const checks = readiness(c);
-              const done = checks.filter((k) => k.ok).length;
-              const blocked = checks.some((k) => k.blocking && !k.ok);
-              const days = freshnessDays(c.lastVerifiedAt);
-              return (
-                <tr key={c.id} className="border-b border-line last:border-0 hover:bg-canvas">
-                  <td className="px-5 py-3">
-                    <Link href={`/admin/candidates/${c.code}`} className="flex items-center gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-night text-[12px] font-semibold text-brand-bright">
-                        {(c.firstName[0] ?? "") + (c.lastName[0] ?? "")}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-medium text-ink hover:text-cobalt">
-                          {c.firstName} {c.lastName}
-                        </span>
-                        <span className="block font-mono text-xs text-subtle">{c.code}</span>
-                        <span className="block max-w-[260px] truncate text-xs text-subtle">{c.email}</span>
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="py-3">
-                    <span className="block text-ink">{c.title}</span>
-                    <span className="block text-xs text-subtle">{c.yearsExperience} yrs</span>
-                  </td>
-                  <td className="py-3">
-                    <Pill tone={STAGE_TONE[c.benchStage]}>{c.benchStage === "Interview" ? "Client interview" : c.benchStage}</Pill>
-                  </td>
-                  <td className="py-3 text-ink-2">{WORK_AUTH_SHORT[c.workAuthorization]}</td>
-                  <td className="py-3">
-                    <span className="flex items-center gap-2">
-                      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-line">
-                        <span className={cn("block h-full rounded-full", blocked ? "bg-flag" : done === checks.length ? "bg-avail" : "bg-cobalt")} style={{ width: `${(done / checks.length) * 100}%` }} />
-                      </span>
-                      <span className="tnum text-xs text-subtle">
-                        {done}/{checks.length}
-                      </span>
-                    </span>
-                    {blocked && <span className="mt-0.5 block text-xs text-flag-ink">Blocked from customers</span>}
-                  </td>
-                  <td className="tnum py-3 pl-4 text-right whitespace-nowrap text-ink-2">
-                    ${c.rateC2C} / ${c.rateW2}
-                  </td>
-                  <td className={cn("tnum px-5 py-3 text-right", days >= FRESHNESS_WINDOW_DAYS ? "text-notice-ink" : "text-subtle")}>{days === 0 ? "Today" : `${days}d ago`}</td>
-                </tr>
-              );
-            })}
-            {list.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-[14px] text-subtle">
-                  No candidates match. Clear the search or filters to see everyone.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+        }
+      />
+      <PageBody>
+        <Panel>
+          <ListToolbar
+            noun="candidates"
+            summary={list.length}
+            onClearAll={clearAll}
+            search={{ value: q, onChange: setQ, placeholder: "Search candidates" }}
+            sort={{
+              value: sort,
+              onChange: (v) => setSort(v as typeof sort),
+              options: [
+                { value: "code", label: "Code" },
+                { value: "name", label: "Last name" },
+                { value: "stale", label: "Longest since confirmed" },
+                { value: "rate", label: "Highest rate" },
+              ],
+            }}
+            overflow={[{ label: "Export CSV", onSelect: exportCsv, disabled: !list.length }]}
+            filters={[
+              {
+                key: "stage",
+                label: "Stage",
+                value: stage,
+                onChange: (v) => setStage(v as typeof stage),
+                options: [
+                  { value: "all", label: "All stages", meta: all.length },
+                  ...STAGES.map((s) => ({ value: s, label: stageLabel(s), meta: all.filter((c) => c.benchStage === s).length })),
+                ],
+              },
+              {
+                key: "practice",
+                label: "Practice",
+                value: practice,
+                onChange: (v) => setPractice(v as typeof practice),
+                options: [
+                  { value: "all", label: "All practices" },
+                  ...(["Data & AI", "DevOps / Cloud", "Full-Stack"] as Discipline[]).map((d) => ({
+                    value: d,
+                    label: practiceLabel(d),
+                    meta: all.filter((c) => c.discipline === d).length,
+                  })),
+                ],
+              },
+              {
+                key: "vis",
+                label: "Customer visibility",
+                value: vis,
+                onChange: (v) => setVis(v as Visibility),
+                options: [
+                  { value: "all", label: "Any" },
+                  { value: "visible", label: "Visible", meta: all.filter(isListable).length },
+                  { value: "blocked", label: "Not visible", meta: all.filter((c) => !isListable(c) && c.benchStage !== "Placed").length },
+                ],
+              },
+            ]}
+          />
+          <FitTable
+            caption="Candidates"
+            rows={pager.rows}
+            columns={cols}
+            rowKey={(c) => c.id}
+            onRowClick={(c) => router.push(`/admin/candidates/${c.code}`)}
+            empty={<EmptyState icon={<IconUsers size={18} />} title="No candidates match" description="Clear the search or filters to see everyone." />}
+          />
+          <Pagination {...pager} noun="candidates" />
+        </Panel>
+      </PageBody>
+    </>
   );
 }

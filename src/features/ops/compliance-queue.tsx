@@ -1,13 +1,21 @@
 "use client";
 
-import * as Tabs from "@radix-ui/react-tabs";
-import { useState } from "react";
-import { cn } from "@/lib/cn";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import type { BenchStage } from "@/lib/types";
 import { useWorkspace } from "@/lib/workspace-store";
+import { PageBody, PageHeader } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
-import { CandidateCode, Pill } from "@/components/ui/status";
+import { CandidateCode } from "@/components/ui/status";
+import { StatusDot } from "@/components/ui/status-dot";
+import { FitTable, type FitColumn } from "@/features/admin/fit-table";
+import { ListToolbar } from "@/features/admin/list-toolbar";
+import { EmptyState, KpiTile } from "@/components/ui/data-display";
+import { Pagination, usePage } from "@/components/ui/pagination";
+import { UnderlineTabs } from "@/components/ui/tabs";
 import { IconCheck, IconMail } from "@/components/icons";
+import { STAGE_STATUS, stageLabel } from "@/features/admin/candidate-list";
+import { Panel, textAction } from "@/features/admin/ui";
 
 export interface QueueItem {
   id: string;
@@ -38,118 +46,193 @@ const ACTION: Record<string, string> = {
   "Availability stale": "Ping consultant",
 };
 
+type Sev = "flag" | "notice" | "all";
+
 export function ComplianceQueue({ items, stats }: { items: QueueItem[]; stats: ComplianceStats }) {
   const { notify } = useWorkspace();
   const [done, setDone] = useState<Set<string>>(new Set());
-  const [tab, setTab] = useState<"flag" | "notice" | "all">("flag");
-  const open = items.filter((i) => !done.has(i.id));
-  const list = open.filter((i) => tab === "all" || i.severity === tab).sort((a, b) => (a.dueInDays ?? 999) - (b.dueInDays ?? 999));
+  const [tab, setTab] = useState<Sev>("flag");
+  const [q, setQ] = useState("");
+  const [kind, setKind] = useState("all");
+  const [stageF, setStageF] = useState("all");
+  const open = useMemo(() => items.filter((i) => !done.has(i.id)), [items, done]);
+  const kinds = [...new Set(items.map((i) => i.label))];
   const verifiedPct = Math.round((stats.presentableVerified / stats.presentable) * 100);
 
-  return (
-    <div className="px-4 py-6 sm:px-8">
-      <div>
-        <dl className="grid overflow-hidden rounded-panel bg-surface ring-1 ring-line sm:grid-cols-4">
-          {[
-            { k: "Verified before presentation", v: `${verifiedPct}%`, note: `${stats.presentableVerified} of ${stats.presentable} listed profiles`, tone: "text-avail-ink" },
-            { k: "Visas expiring in 90 days", v: stats.visa90, note: "Extensions to request" },
-            { k: "Background checks pending", v: stats.bgPending, note: "With screening provider" },
-            { k: "Stale availability", v: stats.stale, note: "Outside the 7-day window" },
-          ].map((s, i) => (
-            <div key={s.k} className={cn("px-5 py-4", i > 0 && "border-t border-line sm:border-t-0 sm:border-l")}>
-              <dt className="text-xs text-subtle">{s.k}</dt>
-              <dd className={cn("tnum mt-1 text-[24px] font-semibold tracking-[-0.02em]", s.tone)}>{s.v}</dd>
-              <dd className="text-xs text-subtle">{s.note}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
+  // Soonest deadline first; items due now (no countdown) lead.
+  const list = useMemo(() => {
+    const n = q.trim().toLowerCase();
+    return open
+      .filter(
+        (i) =>
+          (tab === "all" || i.severity === tab) &&
+          (kind === "all" || i.label === kind) &&
+          (stageF === "all" || i.stage === stageF) &&
+          (!n || `${i.candidateCode} ${i.name} ${i.title}`.toLowerCase().includes(n)),
+      )
+      .sort((a, b) => (a.dueInDays ?? -1) - (b.dueInDays ?? -1));
+  }, [open, tab, kind, q, stageF]);
+  const pager = usePage(list, 25, `${q}|${tab}|${kind}|${stageF}`);
+  const count = (s: Sev) => open.filter((i) => s === "all" || i.severity === s).length;
 
-      <Tabs.Root value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="mt-6">
-        <Tabs.List aria-label="Severity" className="flex gap-1 border-b border-line">
-          {(
-            [
-              ["flag", "Blocking flags"],
-              ["notice", "Notices"],
-              ["all", "All open items"],
-            ] as const
-          ).map(([v, l]) => (
-            <Tabs.Trigger
-              key={v}
-              value={v}
-              className="-mb-px border-b-2 border-transparent px-3 pb-2.5 text-[13.5px] font-medium text-subtle hover:text-ink data-[state=active]:border-cobalt data-[state=active]:text-ink"
-            >
-              {l}
-              <span className="tnum ml-1.5 text-xs text-faint">{open.filter((i) => v === "all" || i.severity === v).length}</span>
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
-      </Tabs.Root>
-
-      {list.length === 0 ? (
-        <div className="mt-4 flex flex-col items-center rounded-panel bg-surface py-12 text-center ring-1 ring-line">
-          <span className="grid size-10 place-items-center rounded-full bg-avail-bg text-avail-ink">
-            <IconCheck size={20} />
+  const cols: FitColumn<QueueItem>[] = [
+    {
+      key: "who",
+      header: "Consultant",
+      width: "minmax(230px,1.3fr)",
+      cell: (i) => (
+        <span className="min-w-0">
+          <Link href={`/admin/candidates/${i.candidateCode}`} className="group flex min-w-0 items-center gap-2">
+            <CandidateCode code={i.candidateCode} />
+            <span className="truncate font-medium text-ink group-hover:text-cobalt group-hover:underline">{i.name}</span>
+          </Link>
+          <span className="block truncate text-[13px] text-subtle">{i.title}</span>
+        </span>
+      ),
+    },
+    {
+      key: "item",
+      header: "Open item",
+      width: "minmax(320px,2fr)",
+      cell: (i) => (
+        <span className="min-w-0">
+          <StatusDot tone={i.severity === "flag" ? "danger" : "warning"} className="flex">
+            {i.label}
+          </StatusDot>
+          <span className="mt-0.5 block truncate pl-3.5 text-[13px] text-subtle" title={i.detail}>
+            {i.detail}
           </span>
-          <p className="mt-3 font-medium">Queue clear</p>
-          <p className="mt-1 text-sm text-muted">No open items at this severity.</p>
+        </span>
+      ),
+    },
+    {
+      key: "stage",
+      priority: 2,
+      header: "Stage",
+      width: "minmax(140px,0.8fr)",
+      cell: (i) => <StatusDot tone={STAGE_STATUS[i.stage]}>{stageLabel(i.stage)}</StatusDot>,
+    },
+    {
+      key: "due",
+      priority: 1,
+      header: "Due",
+      width: "minmax(100px,0.6fr)",
+      cell: (i) =>
+        i.dueInDays === undefined ? (
+          <span className="font-medium text-[#b42318]">Now</span>
+        ) : (
+          <span className={i.dueInDays <= 45 ? "tnum font-medium text-[#b42318]" : "tnum text-[#9a5b00]"}>In {i.dueInDays} days</span>
+        ),
+    },
+    {
+      key: "act",
+      header: <span className="sr-only">Actions</span>,
+      width: "minmax(260px,1fr)",
+      align: "end",
+      cell: (i) => (
+        <span className="flex items-center justify-end gap-4">
+          <Button
+            size="sm"
+            onClick={() => notify({ tone: "ok", title: `${ACTION[i.label] ?? "Follow up"}: ${i.candidateCode}`, body: `Email queued to ${i.name}.` })}
+          >
+            <IconMail size={14} />
+            {ACTION[i.label] ?? "Follow up"}
+          </Button>
+          <button
+            type="button"
+            className={textAction}
+            onClick={() => {
+              setDone((d) => new Set(d).add(i.id));
+              notify({ tone: "ok", title: `Resolved: ${i.label.toLowerCase()} for ${i.candidateCode}` });
+            }}
+          >
+            Resolve
+          </button>
+        </span>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        title="Compliance queue"
+        description="Work authorization, I-9, background checks, references and availability. A blocking item keeps a profile off the customer bench."
+        tabs={
+          <UnderlineTabs
+            value={tab}
+            onValueChange={setTab}
+            label="Severity"
+            tabs={[
+              { value: "flag", label: "Blocking", count: count("flag"), countTone: "flag" },
+              { value: "notice", label: "Notices", count: count("notice") },
+              { value: "all", label: "All open items", count: count("all") },
+            ]}
+          />
+        }
+      />
+      <PageBody className="space-y-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4 xl:gap-6">
+          <KpiTile
+            label="Verified before presentation"
+            value={`${verifiedPct}%`}
+            hint={`${stats.presentableVerified} of ${stats.presentable} listed profiles`}
+          />
+          <KpiTile label="Visas expiring within 90 days" value={stats.visa90} hint="Extensions to request" />
+          <KpiTile label="Background checks pending" value={stats.bgPending} hint="With the screening provider" />
+          <KpiTile label="Availability out of date" value={stats.stale} hint={`Not confirmed in the last 7 days`} />
         </div>
-      ) : (
-        <div className="mt-4 overflow-x-auto rounded-panel bg-surface ring-1 ring-line">
-          <table className="w-full min-w-[920px] text-left text-[13px]">
-            <thead className="border-b border-line bg-canvas text-xs text-subtle">
-              <tr>
-                <th className="py-2.5 pl-4 font-medium">Consultant</th>
-                <th className="py-2.5 font-medium">Item</th>
-                <th className="py-2.5 font-medium">Stage</th>
-                <th className="py-2.5 font-medium">Due</th>
-                <th className="py-2.5 pr-4 text-right font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((i) => (
-                <tr key={i.id} className="border-b border-line align-top last:border-0">
-                  <td className="py-3 pl-4">
-                    <CandidateCode code={i.candidateCode} />
-                    <span className="block font-medium">{i.name}</span>
-                    <span className="text-xs text-subtle">{i.title}</span>
-                  </td>
-                  <td className="max-w-[380px] py-3">
-                    <Pill tone={i.severity === "flag" ? "flag" : "notice"}>{i.label}</Pill>
-                    <p className="mt-1.5 text-xs leading-relaxed text-muted">{i.detail}</p>
-                  </td>
-                  <td className="py-3 text-ink-2">{i.stage}</td>
-                  <td className="tnum py-3">
-                    {i.dueInDays !== undefined ? (
-                      <span className={cn("font-medium", i.dueInDays <= 45 ? "text-flag-ink" : "text-notice-ink")}>{i.dueInDays} days</span>
-                    ) : (
-                      <span className="text-subtle">Now</span>
-                    )}
-                  </td>
-                  <td className="py-3 pr-4">
-                    <div className="flex justify-end gap-1.5">
-                      <Button size="sm" onClick={() => notify({ tone: "ok", title: `${ACTION[i.label] ?? "Follow up"}: ${i.candidateCode}`, body: `Email queued to ${i.name} via SES.` })}>
-                        <IconMail size={13} />
-                        {ACTION[i.label] ?? "Follow up"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setDone((d) => new Set(d).add(i.id));
-                          notify({ tone: "ok", title: `Resolved ${i.label.toLowerCase()} for ${i.candidateCode}` });
-                        }}
-                      >
-                        Resolve
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+
+        <Panel>
+          <ListToolbar
+            noun="open items"
+            summary={list.length}
+            onClearAll={() => {
+              setQ("");
+              setKind("all");
+              setStageF("all");
+            }}
+            search={{ value: q, onChange: setQ, placeholder: "Search code, name or role" }}
+            filters={[
+              {
+                key: "item",
+                label: "Item",
+                value: kind,
+                onChange: setKind,
+                options: [{ value: "all", label: "All items" }, ...kinds.map((k) => ({ value: k, label: k, meta: open.filter((i) => i.label === k).length }))],
+              },
+              {
+                key: "stage",
+                label: "Stage",
+                value: stageF,
+                onChange: setStageF,
+                options: [
+                  { value: "all", label: "All stages" },
+                  ...(["Onboarding", "Vetting", "Available", "Interview", "Placed"] as const).map((st) => ({
+                    value: st,
+                    label: stageLabel(st),
+                    meta: open.filter((i) => i.stage === st).length,
+                  })),
+                ],
+              },
+            ]}
+          />
+          <FitTable
+            caption="Compliance queue"
+            rows={pager.rows}
+            columns={cols}
+            rowKey={(i) => i.id}
+            empty={
+              <EmptyState
+                icon={<IconCheck size={18} />}
+                title="Queue clear"
+                description="No open items at this severity. New issues appear here as soon as a check lapses."
+              />
+            }
+          />
+          <Pagination {...pager} noun="open items" />
+        </Panel>
+      </PageBody>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { IconPlus } from "@/components/icons";
+import { IconChevronDown } from "@/components/icons";
 
 export const FAQS = [
   {
@@ -59,18 +59,30 @@ export const CANDIDATE_FAQS = [
 ];
 
 /** Native <details> accordion: keyboard and screen-reader friendly without JS. */
-export function Faq({ items = FAQS }: { items?: { q: string; a: string }[] }) {
+export function Faq({ items = FAQS, variant = "rules" }: { items?: { q: string; a: string }[]; variant?: "rules" | "cards" }) {
+  if (variant === "cards")
+    return (
+      <div className="space-y-3">
+        {items.map((f) => (
+          <details key={f.q} className="group rounded-[14px] bg-[#f3f5f9] px-6 transition-colors duration-300 open:bg-brand-wash sm:px-7">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-left text-[17px] leading-snug font-semibold text-ink sm:text-[18px] [&::-webkit-details-marker]:hidden">
+              {f.q}
+              <IconChevronDown size={20} strokeWidth={1.75} className="shrink-0 text-muted transition-transform duration-300 group-open:rotate-180" />
+            </summary>
+            <p className="max-w-[68ch] pb-6 text-[16px] leading-[1.65] text-ink-2 sm:text-[17px]">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    );
   return (
-    <div className="divide-y divide-line border-y border-line">
+    <div className="border-t border-[#dfe3ea]">
       {items.map((f) => (
-        <details key={f.q} className="group">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-left text-[18px] font-medium text-ink transition-colors hover:text-brand [&::-webkit-details-marker]:hidden">
+        <details key={f.q} className="group border-b border-[#dfe3ea]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-left text-[17px] leading-snug font-semibold text-ink transition-colors hover:text-brand sm:text-[18px] [&::-webkit-details-marker]:hidden">
             {f.q}
-            <span className="grid size-9 shrink-0 place-items-center rounded-full ring-1 ring-line-strong transition-all duration-300 group-open:rotate-45 group-open:bg-ink group-open:text-white group-open:ring-ink">
-              <IconPlus size={16} />
-            </span>
+            <IconChevronDown size={20} className="shrink-0 text-muted transition-transform duration-200 group-open:rotate-180" />
           </summary>
-          <p className="anim-fade max-w-3xl pr-14 pb-6 text-[16px] leading-relaxed text-muted">{f.a}</p>
+          <p className="max-w-[68ch] pb-6 text-[16px] leading-[1.65] text-ink-2 sm:text-[17px]">{f.a}</p>
         </details>
       ))}
     </div>

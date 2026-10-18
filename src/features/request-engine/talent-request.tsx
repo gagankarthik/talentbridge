@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/ui/overlay";
 import { Button, buttonClass } from "@/components/ui/button";
-import { AvailabilityPill, CandidateCode, WorkAuthTag } from "@/components/ui/status";
-import { FreshnessMeter } from "@/components/ui/freshness-meter";
+import { CandidateCode, Tag, WorkAuthTag } from "@/components/ui/status";
+import { SegmentBar } from "@/components/ui/data-display";
+import { AvailabilityText } from "@/components/ui/status-text";
 import { IconBookmark, IconBookmarkFilled, IconCheck, IconFile, IconUpload } from "@/components/icons";
 import { cn } from "@/lib/cn";
-import { usd } from "@/lib/format";
+import { relativeAgo, usd } from "@/lib/format";
 import type { MatchResult, ParsedSpec } from "@/lib/match";
 import { useWorkspace } from "@/lib/workspace-store";
 
@@ -77,7 +78,7 @@ export function SpecComposer({ value, onChange, onSubmit, busy, error, dense }: 
           e.preventDefault();
           onFile(e.dataTransfer.files[0]);
         }}
-        className="rounded-panel bg-surface ring-1 ring-line-strong focus-within:ring-2 focus-within:ring-cobalt"
+        className="rounded-lg border border-control bg-surface transition-[border-color,box-shadow] duration-150 focus-within:border-cobalt focus-within:shadow-[0_0_0_3px_rgb(37_88_224/0.2)]"
       >
         <label htmlFor="spec" className="sr-only">
           Role requirements
@@ -88,9 +89,9 @@ export function SpecComposer({ value, onChange, onSubmit, busy, error, dense }: 
           onChange={(e) => onChange(e.target.value)}
           rows={dense ? 5 : 8}
           placeholder="Paste the client's job description or role requirements: stack, years, cloud, rate ceiling, location, work authorization."
-          className="block w-full resize-none rounded-t-panel bg-transparent px-4 pt-3.5 text-[14px] leading-relaxed text-ink placeholder:text-faint focus:outline-none"
+          className="block w-full resize-none rounded-t-lg bg-transparent px-4 pt-3.5 text-[14px] leading-relaxed text-ink placeholder:text-subtle focus:outline-none!"
         />
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-2.5 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hair px-2.5 py-2">
           <div className="flex items-center gap-1">
             <input ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
             <Button size="sm" variant="ghost" onClick={() => fileRef.current?.click()}>
@@ -104,18 +105,22 @@ export function SpecComposer({ value, onChange, onSubmit, busy, error, dense }: 
         </div>
       </div>
       {file && (
-        <p className="flex items-start gap-2 text-xs text-muted">
-          <IconFile size={15} className="mt-px shrink-0 text-subtle" />
+        <p className="flex items-start gap-2 text-[13px] text-ink-2">
+          <IconFile size={16} className="mt-px shrink-0 text-ink-2" />
           <span>
             <span className="font-medium text-ink-2">{file.name}</span>. {file.note}
           </span>
         </p>
       )}
-      {error && <p className="text-[13px] text-flag-ink">{error}</p>}
+      {error && (
+        <p role="alert" className="text-[13px] text-tag-red-text">
+          {error}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-xs text-subtle">Try a sample:</span>
+        <span className="mr-1 text-[13px] text-ink-2">Try a sample</span>
         {SAMPLE_SPECS.map((s) => (
-          <button key={s.label} type="button" onClick={() => onChange(s.text)} className="h-7 rounded-full px-2.5 text-xs text-ink-2 ring-1 ring-line-strong hover:bg-canvas">
+          <button key={s.label} type="button" onClick={() => onChange(s.text)} className="h-8 rounded-md border border-control bg-surface px-2.5 text-[13px] text-ink transition-colors duration-150 hover:border-cobalt hover:bg-cobalt-wash hover:text-cobalt-strong">
             {s.label}
           </button>
         ))}
@@ -133,22 +138,22 @@ function SpecSummary({ spec }: { spec: ParsedSpec }) {
   if (spec.citizenOnly) items.push(["Work authorization", "US citizens only"]);
   if (spec.needsClearance) items.push(["Clearance", "Required"]);
   return (
-    <div className="rounded-panel bg-canvas p-4 ring-1 ring-line">
-      <p className="text-xs font-medium text-ink-2">What we read from the spec</p>
-      <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2 text-[13px] sm:grid-cols-3">
+    <div>
+      <p className="text-[14px] font-semibold text-ink">What we read from the spec</p>
+      <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {items.map(([k, v]) => (
-          <div key={k}>
-            <dt className="text-xs text-subtle">{k}</dt>
-            <dd className="font-medium text-ink">{v}</dd>
+          <div key={k} className="flex flex-col gap-1.5 rounded-md border border-hair px-3 py-2.5">
+            <dt className="text-[13px] text-ink-2">{k}</dt>
+            <dd className="text-[13.5px] font-medium text-ink">{v}</dd>
           </div>
         ))}
       </dl>
       {spec.skills.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1">
           {spec.skills.map((s) => (
-            <span key={s} className="rounded-[5px] bg-surface px-2 py-0.5 text-xs text-ink-2 ring-1 ring-line">
+            <Tag key={s} tone="blue" size="sm">
               {s}
-            </span>
+            </Tag>
           ))}
         </div>
       )}
@@ -161,8 +166,8 @@ function ResultRow({ r, rank, showRates }: { r: MatchResult; rank: number; showR
   const c = r.candidate;
   const saved = isShortlisted(c.id);
   return (
-    <li className="grid grid-cols-[28px_1fr_auto] gap-3 border-b border-line px-6 py-4 last:border-0">
-      <span className="tnum pt-0.5 text-sm text-faint">{rank}</span>
+    <li className="grid grid-cols-[28px_1fr_auto] gap-3 border-b border-hair px-6 py-4 transition-colors duration-150 ease-power3-out last:border-0 hover:bg-canvas">
+      <span className="tnum pt-0.5 text-[13px] text-subtle">{rank}</span>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <CandidateCode code={c.code} />
@@ -171,27 +176,28 @@ function ResultRow({ r, rank, showRates }: { r: MatchResult; rank: number; showR
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <WorkAuthTag auth={c.workAuthorization} short />
-          <AvailabilityPill c={c} />
+          <AvailabilityText c={c} />
           {showRates && <span className="tnum text-[13px] text-ink-2">{usd.format(c.rateC2C)}/hr C2C</span>}
-          <FreshnessMeter lastVerifiedAt={c.lastVerifiedAt} compact />
+          <span className="text-[13px] text-ink-2">Confirmed {relativeAgo(c.lastVerifiedAt)}</span>
         </div>
-        <p className="mt-2 text-xs leading-relaxed">
+        <p className="mt-2.5 flex flex-wrap gap-1">
           {r.matched.map((s) => (
-            <span key={s} className="mr-2 inline-flex items-center gap-0.5 text-avail-ink">
-              <IconCheck size={12} strokeWidth={2.25} />
+            <Tag key={s} tone="blue" size="sm" className="gap-1">
+              <IconCheck size={11} strokeWidth={2.5} />
               {s}
-            </span>
+            </Tag>
           ))}
           {r.missing.map((s) => (
-            <span key={s} className="mr-2 inline-flex items-center gap-0.5 text-subtle line-through decoration-faint">
+            <Tag key={s} size="sm" className="font-normal text-subtle line-through decoration-subtle" title="Missing from this profile">
               {s}
-            </span>
+            </Tag>
           ))}
         </p>
       </div>
       <div className="flex flex-col items-end gap-2">
-        <span className="tnum text-[20px] leading-none font-semibold text-ink" title="Match score out of 100">
-          {r.score}
+        <span className="flex flex-col items-end gap-1.5" title="Match score out of 100">
+          <span className="tnum text-[20px] leading-none font-semibold text-ink">{r.score}</span>
+          <SegmentBar percent={r.score} tone="brand" className="w-14" label={`Match score ${r.score} of 100`} />
         </span>
         {showRates && (
           <Button size="sm" variant={saved ? "secondary" : "ghost"} onClick={() => toggleShortlist(c)} aria-pressed={saved}>
@@ -219,21 +225,22 @@ export function TalentRequestSheet({ open, onOpenChange, initialSpec = "", autoR
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      title="Request talent"
+      title="Match a job spec"
       description="Paste or upload the role. We rank the verified bench against it."
+      icon={<IconFile size={15} />}
       width="max-w-[720px]"
       footer={
         m.data ? (
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex w-full items-center justify-between gap-3">
             <Button variant="ghost" onClick={() => m.reset()}>
               Edit requirements
             </Button>
             {publicView ? (
-              <Link href="/contact?topic=requisition" className={buttonClass("dark")}>
+              <Link href="/contact?topic=requisition" className={buttonClass("primary")}>
                 Request these profiles
               </Link>
             ) : (
-              <Link href="/shortlist" className={buttonClass("dark")}>
+              <Link href="/shortlist" className={buttonClass("primary")}>
                 Review shortlist
               </Link>
             )}
@@ -249,14 +256,14 @@ export function TalentRequestSheet({ open, onOpenChange, initialSpec = "", autoR
         <div>
           <div className="p-6 pb-4">
             <SpecSummary spec={m.data.spec} />
-            <p className="mt-5 flex items-center justify-between text-[13px] text-muted">
+            <p className="mt-6 flex items-center justify-between text-[13px] text-muted">
               <span>
                 <span className="font-medium text-ink">{m.data.results.length} ranked matches</span> from the verified bench
               </span>
-              <span className="text-xs text-subtle">Score out of 100</span>
+              <span className="text-[13px] text-ink-2">Match score out of 100</span>
             </p>
           </div>
-          <ul className="border-t border-line">
+          <ul className="border-t border-hair">
             {m.data.results.map((r, i) => (
               <ResultRow key={r.candidate.id} r={r} rank={i + 1} showRates={!publicView} />
             ))}

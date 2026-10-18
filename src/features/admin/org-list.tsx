@@ -8,19 +8,38 @@ import { relativeAgo } from "@/lib/format";
 import { useDemoNow } from "@/lib/clock";
 import { PLANS, STAFF, type OrgStatus, type Plan, type PlatformOrg } from "@/lib/platform";
 import { useWorkspace } from "@/lib/workspace-store";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/app-shell";
+import { Button, buttonClass } from "@/components/ui/button";
 import { Field, Input, Segmented } from "@/components/ui/form";
-import { Sheet } from "@/components/ui/overlay";
-import { Pill } from "@/components/ui/status";
-import { IconSearch } from "@/components/icons";
-import { useAdmin } from "./admin-store";
+import { Modal, Sheet } from "@/components/ui/overlay";
 import { Select } from "@/components/ui/select";
+import { StatusDot } from "@/components/ui/status-dot";
+import { FitTable, type FitColumn } from "./fit-table";
+import { ListToolbar } from "./list-toolbar";
+import { EmptyState } from "@/components/ui/data-display";
+import { Pagination, usePage } from "@/components/ui/pagination";
+import { IconBuilding, IconPlus } from "@/components/icons";
+import { useAdmin } from "./admin-store";
+import { Avatar, Meta, ORG_STATUS, OrgMark, PageBody, Panel, textAction } from "./ui";
 
+/** Kept for older imports: status → legacy pill tone */
 export const STATUS_PILL: Record<OrgStatus, { tone: "avail" | "notice" | "placed"; label: string }> = {
   active: { tone: "avail", label: "Active" },
   onboarding: { tone: "notice", label: "Onboarding" },
   suspended: { tone: "placed", label: "Suspended" },
 };
+
+const PARTNERS = STAFF.filter((s) => s.role === "client_partner");
+const security = (o: PlatformOrg) => [o.sso ? "SSO" : null, o.mfaRequired ? "Two-factor required" : null].filter(Boolean).join(", ") || "Password only";
+
+function FormSection({ title, children, last }: { title: string; children: React.ReactNode; last?: boolean }) {
+  return (
+    <fieldset className={cn("space-y-4 px-6 py-6", !last && "border-b border-line")}>
+      <legend className="float-left mb-4 w-full text-[16px] font-semibold text-ink">{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
 
 function CreateOrg({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { orgs, createOrg } = useAdmin();
@@ -31,11 +50,15 @@ function CreateOrg({ open, onOpenChange }: { open: boolean; onOpenChange: (o: bo
   const [plan, setPlan] = useState<Plan>("Partner");
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
-  const [partner, setPartner] = useState(STAFF.find((s) => s.role === "client_partner")!.name);
+  const [partner, setPartner] = useState(PARTNERS[0].name);
   const [err, setErr] = useState<string | null>(null);
 
   const submit = () => {
-    const d = domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const d = domain
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "");
     if (!name.trim()) return setErr("Add the organization's name.");
     if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d)) return setErr("Enter the company's email domain, e.g. acme.com.");
     if (orgs.some((o) => o.domain === d)) return setErr(`${d} already belongs to an organization.`);
@@ -71,64 +94,151 @@ function CreateOrg({ open, onOpenChange }: { open: boolean; onOpenChange: (o: bo
   };
 
   return (
-    <Sheet
+    <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Create organization"
-      description="Sets up a new customer and invites their first owner."
-      width="max-w-[520px]"
+      width="max-w-[600px]"
+      title="New organization"
+      description="Sets up a customer workspace and invites its first owner."
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+        <>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button variant="primary" onClick={submit}>
             Create and send invite
           </Button>
-        </div>
+        </>
       }
     >
-      <div className="space-y-5 p-6">
-        <Field label="Organization name" htmlFor="c-name">
-          <Input id="c-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        </Field>
-        <Field label="Email domain" htmlFor="c-domain" hint="Members can only join with this domain.">
-          <Input id="c-domain" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="acme.com" />
-        </Field>
-        <div>
-          <p className="mb-1.5 text-[13px] font-medium text-ink-2">Customer type</p>
-          <Segmented label="Customer type" value={type} onChange={setType} options={[{ value: "Staffing agency", label: "Staffing agency" }, { value: "Enterprise", label: "Enterprise" }]} />
-        </div>
-        <fieldset>
-          <legend className="text-[13px] font-medium text-ink-2">Plan</legend>
-          <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
+      <div className="-mx-6 -my-5">
+        <FormSection title="Company">
+          <Field label="Organization name" htmlFor="c-name" required>
+            <Input id="c-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Email domain" htmlFor="c-domain" hint="Members can only join with this domain." required>
+              <Input id="c-domain" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="acme.com" />
+            </Field>
+            <div className="space-y-1.5">
+              <p className="text-[13px] font-medium text-ink-2">Customer type</p>
+              <Segmented
+                label="Customer type"
+                value={type}
+                onChange={setType}
+                options={[
+                  { value: "Staffing agency", label: "Staffing agency" },
+                  { value: "Enterprise", label: "Enterprise" },
+                ]}
+              />
+            </div>
+          </div>
+        </FormSection>
+
+        <FormSection title="Plan">
+          <div className="grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Plan">
             {PLANS.map((p) => (
-              <label key={p.id} className={cn("cursor-pointer rounded-[10px] p-3 ring-1 ring-inset", plan === p.id ? "bg-cobalt-wash ring-cobalt" : "ring-line hover:bg-canvas")}>
+              <label
+                key={p.id}
+                className={cn(
+                  "cursor-pointer rounded-[6px] border p-3 transition-colors duration-150",
+                  plan === p.id ? "border-cobalt bg-[#eef3fd] shadow-[0_0_0_1px_var(--color-cobalt)]" : "border-control bg-surface hover:bg-canvas",
+                )}
+              >
                 <input type="radio" name="plan" className="sr-only" checked={plan === p.id} onChange={() => setPlan(p.id)} />
-                <span className="block text-[13.5px] font-semibold text-ink">{p.id}</span>
-                <span className="tnum block text-xs text-subtle">{p.seats} seats</span>
-                <span className="block text-xs text-subtle">{p.note}</span>
+                <span className="block text-[14px] font-semibold text-ink">{p.id}</span>
+                <span className="tnum mt-0.5 block text-[13px] text-muted">{p.seats} seats</span>
+                <span className="mt-1 block text-[13px] leading-snug text-subtle">{p.note}</span>
               </label>
             ))}
           </div>
-        </fieldset>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Owner name" htmlFor="c-owner">
-            <Input id="c-owner" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
+        </FormSection>
+
+        <FormSection title="Owner and client partner" last>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Owner name" htmlFor="c-owner" required>
+              <Input id="c-owner" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
+            </Field>
+            <Field label="Owner email" htmlFor="c-owner-email" required>
+              <Input id="c-owner-email" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} />
+            </Field>
+          </div>
+          <Field label="Client partner" htmlFor="c-partner">
+            <Select
+              id="c-partner"
+              value={partner}
+              onValueChange={setPartner}
+              className="w-full"
+              options={PARTNERS.map((s) => ({ value: s.name, label: s.name }))}
+            />
           </Field>
-          <Field label="Owner email" htmlFor="c-owner-email">
-            <Input id="c-owner-email" type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} />
-          </Field>
-        </div>
-        <Field label="Client partner" htmlFor="c-partner">
-          <Select id="c-partner" value={partner} onValueChange={setPartner} className="w-full" options={STAFF.filter((s) => s.role === "client_partner").map((s) => ({ value: s.name, label: s.name }))} />
-        </Field>
-        {err && (
-          <p role="alert" className="text-[13px] text-flag-ink">
-            {err}
-          </p>
-        )}
+          {err && (
+            <p role="alert" className="text-[13px] font-medium text-[#b42318]">
+              {err}
+            </p>
+          )}
+        </FormSection>
       </div>
+    </Modal>
+  );
+}
+
+function OrgPreview({ o, onClose }: { o: PlatformOrg | null; onClose: () => void }) {
+  const now = useDemoNow(60_000);
+  const rows: [string, React.ReactNode][] = o
+    ? [
+        [
+          "Status",
+          <StatusDot key="s" tone={ORG_STATUS[o.status].tone}>
+            {ORG_STATUS[o.status].label}
+          </StatusDot>,
+        ],
+        ["Plan", `${o.plan}, ${o.seats} seats`],
+        ["Seats used", `${o.members} of ${o.seats}`],
+        ["Active holds", o.activeHolds],
+        ["Requests, last 30 days", o.requests30],
+        [
+          "Owner",
+          <span key="o">
+            <span className="block">{o.owner.name}</span>
+            <span className="block text-[13px] text-subtle">{o.owner.email}</span>
+          </span>,
+        ],
+        ["Client partner", o.clientPartner],
+        ["Security", security(o)],
+        ["Customer since", o.createdAt],
+        ["Last active", o.lastActive ? relativeAgo(o.lastActive, now) : "Not yet"],
+      ]
+    : [];
+  return (
+    <Sheet
+      open={!!o}
+      onOpenChange={(v) => !v && onClose()}
+      title={o?.name ?? "Organization"}
+      description={o ? `${o.domain} · ${o.type}` : undefined}
+      footer={
+        o && (
+          <div className="flex w-full items-center justify-between gap-3">
+            <Link href={`/admin/audit?org=${o.id}`} className={textAction}>
+              View activity
+            </Link>
+            <Link href={`/admin/organizations/${o.id}`} className={buttonClass("primary", "md")}>
+              Open organization
+            </Link>
+          </div>
+        )
+      }
+    >
+      {o && (
+        <dl className="divide-y divide-line px-6">
+          {rows.map(([k, v]) => (
+            <div key={k} className="grid grid-cols-[160px_minmax(0,1fr)] gap-4 py-3.5 text-[14px]">
+              <dt className="text-subtle">{k}</dt>
+              <dd className="tnum min-w-0 text-ink">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </Sheet>
   );
 }
@@ -139,96 +249,187 @@ export function OrgList() {
   const now = useDemoNow(60_000);
   const [q, setQ] = useState(params.get("q") ?? "");
   const [status, setStatus] = useState<"all" | OrgStatus>("all");
+  const [plan, setPlan] = useState<"all" | Plan>("all");
+  const [partner, setPartner] = useState("all");
   const [creating, setCreating] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [sort, setSort] = useState<"name" | "active" | "seats">("name");
 
   const list = useMemo(() => {
     const n = q.trim().toLowerCase();
-    return orgs.filter((o) => (status === "all" || o.status === status) && (!n || `${o.name} ${o.domain} ${o.owner.email}`.toLowerCase().includes(n)));
-  }, [orgs, q, status]);
+    return orgs
+      .filter(
+        (o) =>
+          (status === "all" || o.status === status) &&
+          (plan === "all" || o.plan === plan) &&
+          (partner === "all" || o.clientPartner === partner) &&
+          (!n || `${o.name} ${o.domain} ${o.owner.email}`.toLowerCase().includes(n)),
+      )
+      .sort((a, b) =>
+        sort === "name"
+          ? a.name.localeCompare(b.name)
+          : sort === "seats"
+            ? b.members / b.seats - a.members / a.seats
+            : (b.lastActive ?? "").localeCompare(a.lastActive ?? ""),
+      );
+  }, [orgs, q, status, plan, partner, sort]);
+  const pager = usePage(list, 25, `${q}|${status}|${plan}|${partner}`);
+
+  const cols: FitColumn<PlatformOrg>[] = [
+    {
+      key: "org",
+      header: "Organization",
+      width: "minmax(260px,2.2fr)",
+      cell: (o) => (
+        <span className="flex min-w-0 items-center gap-3">
+          <OrgMark name={o.name} size={32} />
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-ink">{o.name}</span>
+            <Meta items={[o.domain, o.type]} />
+          </span>
+        </span>
+      ),
+    },
+    { key: "plan", priority: 4, header: "Plan", width: "minmax(100px,0.7fr)", cell: (o) => <span className="text-muted">{o.plan}</span> },
+    {
+      key: "seats",
+      priority: 2,
+      header: "Seats",
+      width: "minmax(120px,0.8fr)",
+      cell: (o) =>
+        o.members / o.seats >= 0.9 ? (
+          <StatusDot tone="warning" title="90% or more of seats used">
+            {o.members} of {o.seats}
+          </StatusDot>
+        ) : (
+          <span className="tnum text-muted">
+            {o.members} of {o.seats}
+          </span>
+        ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      width: "minmax(124px,0.8fr)",
+      cell: (o) => <StatusDot tone={ORG_STATUS[o.status].tone}>{ORG_STATUS[o.status].label}</StatusDot>,
+    },
+    {
+      key: "partner",
+      priority: 3,
+      header: "Client partner",
+      width: "minmax(160px,1fr)",
+      cell: (o) => (
+        <span className="flex min-w-0 items-center gap-2 text-muted">
+          <Avatar name={o.clientPartner} size={24} />
+          <span className="truncate">{o.clientPartner}</span>
+        </span>
+      ),
+    },
+    {
+      key: "holds",
+      priority: 5,
+      header: "Active holds",
+      width: "minmax(104px,0.6fr)",
+      align: "end",
+      cell: (o) => <span className="text-ink">{o.activeHolds}</span>,
+    },
+    {
+      key: "last",
+      priority: 1,
+      header: "Last active",
+      width: "minmax(112px,0.7fr)",
+      align: "end",
+      cell: (o) => <span className="whitespace-nowrap text-subtle">{o.lastActive ? relativeAgo(o.lastActive, now) : "Not yet"}</span>,
+    },
+  ];
+
+  const clearAll = () => {
+    setQ("");
+    setStatus("all");
+    setPlan("all");
+    setPartner("all");
+  };
 
   return (
-    <div className="space-y-4 px-4 py-5 sm:px-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative min-w-0 sm:flex-1">
-          <IconSearch size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-subtle" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, domain or owner" aria-label="Search organizations" className="pl-9" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Segmented
-            label="Status"
-            value={status}
-            onChange={setStatus}
-            options={[
-              { value: "all", label: "All" },
-              { value: "active", label: "Active" },
-              { value: "onboarding", label: "Onboarding" },
-              { value: "suspended", label: "Suspended" },
+    <>
+      <PageHeader
+        title="Organizations"
+        description="Customer workspaces: plans, seats, security and the client partner responsible for each."
+        actions={
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            <IconPlus size={16} />
+            New organization
+          </Button>
+        }
+      />
+      <PageBody>
+        <Panel>
+          <ListToolbar
+            noun="organizations"
+            summary={list.length}
+            onClearAll={clearAll}
+            search={{ value: q, onChange: setQ, placeholder: "Search name, domain or owner" }}
+            sort={{
+              value: sort,
+              onChange: (v) => setSort(v as typeof sort),
+              options: [
+                { value: "name", label: "Name" },
+                { value: "active", label: "Last active" },
+                { value: "seats", label: "Seat usage" },
+              ],
+            }}
+            filters={[
+              {
+                key: "status",
+                label: "Status",
+                value: status,
+                onChange: (v) => setStatus(v as typeof status),
+                options: [
+                  { value: "all", label: "All statuses", meta: orgs.length },
+                  ...(["active", "onboarding", "suspended"] as const).map((s) => ({
+                    value: s,
+                    label: ORG_STATUS[s].label,
+                    meta: orgs.filter((o) => o.status === s).length,
+                  })),
+                ],
+              },
+              {
+                key: "plan",
+                label: "Plan",
+                value: plan,
+                onChange: (v) => setPlan(v as typeof plan),
+                options: [
+                  { value: "all", label: "All plans" },
+                  ...PLANS.map((p) => ({ value: p.id, label: p.id, meta: orgs.filter((o) => o.plan === p.id).length })),
+                ],
+              },
+              {
+                key: "partner",
+                label: "Client partner",
+                value: partner,
+                onChange: setPartner,
+                options: [
+                  { value: "all", label: "Anyone" },
+                  ...PARTNERS.map((p) => ({ value: p.name, label: p.name, meta: orgs.filter((o) => o.clientPartner === p.name).length })),
+                ],
+              },
             ]}
           />
-          <Button variant="primary" onClick={() => setCreating(true)} className="shrink-0">
-            Create organization
-          </Button>
-        </div>
-      </div>
+          <FitTable
+            caption="Organizations"
+            rows={pager.rows}
+            columns={cols}
+            rowKey={(o) => o.id}
+            activeKey={openId}
+            onRowClick={(o) => setOpenId(o.id)}
+            empty={<EmptyState icon={<IconBuilding size={18} />} title="No organizations match" description="Try a different search, or clear the filters." />}
+          />
+          <Pagination {...pager} noun="organizations" />
+        </Panel>
+      </PageBody>
 
-      <div className="overflow-x-auto rounded-[12px] bg-surface ring-1 ring-line">
-        <table className="w-full min-w-[860px] text-left text-[13.5px]">
-          <thead className="bg-canvas text-xs text-subtle">
-            <tr className="border-b border-line">
-              <th className="px-5 py-2.5 font-medium">Organization</th>
-              <th className="py-2.5 font-medium">Plan</th>
-              <th className="py-2.5 font-medium">Seats</th>
-              <th className="py-2.5 font-medium">Status</th>
-              <th className="py-2.5 font-medium">Client partner</th>
-              <th className="py-2.5 font-medium">Security</th>
-              <th className="px-5 py-2.5 font-medium">Last active</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((o) => (
-              <tr key={o.id} className="border-b border-line last:border-0 hover:bg-canvas">
-                <td className="px-5 py-3">
-                  <Link href={`/admin/organizations/${o.id}`} className="flex items-center gap-3">
-                    <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-night text-[12px] font-semibold text-brand-bright">
-                      {o.name.split(" ").map((p) => p[0]).join("").slice(0, 2)}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-medium text-ink hover:text-cobalt">{o.name}</span>
-                      <span className="block text-xs text-subtle">
-                        {o.domain}, {o.type}
-                      </span>
-                    </span>
-                  </Link>
-                </td>
-                <td className="py-3 text-ink">{o.plan}</td>
-                <td className="py-3">
-                  <span className="tnum text-ink">
-                    {o.members}/{o.seats}
-                  </span>
-                  <span className="mt-1 block h-1 w-16 overflow-hidden rounded-full bg-line">
-                    <span className={cn("block h-full rounded-full", o.members / o.seats >= 0.9 ? "bg-notice" : "bg-cobalt")} style={{ width: `${Math.min(100, (o.members / o.seats) * 100)}%` }} />
-                  </span>
-                </td>
-                <td className="py-3">
-                  <Pill tone={STATUS_PILL[o.status].tone}>{STATUS_PILL[o.status].label}</Pill>
-                </td>
-                <td className="py-3 text-ink-2">{o.clientPartner}</td>
-                <td className="py-3 text-xs text-subtle">{[o.sso ? "SSO" : null, o.mfaRequired ? "2FA required" : null].filter(Boolean).join(", ") || "Password only"}</td>
-                <td className="tnum px-5 py-3 text-subtle">{o.lastActive ? relativeAgo(o.lastActive, now) : "Not yet"}</td>
-              </tr>
-            ))}
-            {list.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-[14px] text-subtle">
-                  No organizations match.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
+      <OrgPreview o={orgs.find((o) => o.id === openId) ?? null} onClose={() => setOpenId(null)} />
       <CreateOrg open={creating} onOpenChange={setCreating} />
-    </div>
+    </>
   );
 }

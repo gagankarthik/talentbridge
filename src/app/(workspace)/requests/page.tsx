@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { candidateById, currentRecruiter, requests } from "@/lib/data";
 import { blindName } from "@/lib/format";
-import { PageHeader } from "@/components/layout/app-shell";
 import { RequestsView, type RequestRow } from "@/features/requests/requests-view";
 
-export const metadata: Metadata = { title: "Requests and locks" };
+export const metadata: Metadata = { title: "Requests and holds" };
 
 export default function RequestsPage() {
   const seeded: RequestRow[] = requests
@@ -14,12 +13,6 @@ export default function RequestsPage() {
       return { ...r, code: c.code, title: c.title, revealedName: blindName(c) };
     });
 
-  return (
-    <>
-      <PageHeader
-        title="Requests and holds"
-      />
-      <RequestsView seeded={seeded} />
-    </>
-  );
+  // The view owns its header: tab counts include holds placed in this browser session.
+  return <RequestsView seeded={seeded} />;
 }

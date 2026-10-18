@@ -34,20 +34,26 @@ export function CookieNotice() {
 
   if (!open) return null;
   return (
-    <div role="dialog" aria-label="Cookie preferences" className="anim-dialog fixed right-4 bottom-4 left-4 z-50 max-w-[420px] rounded-[16px] bg-surface p-5 shadow-[0_24px_56px_-16px_rgb(7_26_20/0.35)] ring-1 ring-line sm:left-auto">
-      <p className="text-[15px] font-semibold text-ink">Cookies on this site</p>
-      <p className="mt-1.5 text-[14px] leading-relaxed text-muted">
-        We use essential cookies to run the site and optional ones to understand how it&apos;s used. Read our{" "}
+    <div
+      role="dialog"
+      aria-label="Cookie preferences"
+      className="anim-dialog fixed inset-x-0 bottom-0 z-50 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-[#dfe3ea] bg-white px-4 py-3 shadow-[0_-8px_24px_-12px_rgb(11_27_51/0.18)] sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-[400px] sm:flex-col sm:items-start sm:rounded-[8px] sm:border sm:p-5 sm:shadow-[0_12px_32px_-8px_rgb(11_27_51/0.18)]"
+    >
+      <p className="hidden text-[16px] font-semibold text-ink sm:block">Cookies on this site</p>
+      <p className="min-w-0 basis-full text-[14px] leading-snug text-ink-2 sm:basis-auto sm:text-[15px] sm:leading-relaxed">
+        Essential cookies run the site; optional ones help us improve it.{" "}
         <Link href="/privacy#cookies" className="font-medium text-brand underline underline-offset-4">
-          privacy policy
+          Privacy policy
         </Link>
-        .
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button onClick={() => choose("all")} className="inline-flex h-10 items-center rounded-full bg-brand px-5 text-[14px] font-semibold text-white hover:bg-brand-strong">
+      <div className="flex gap-2">
+        <button onClick={() => choose("all")} className="inline-flex h-10 items-center rounded-[6px] bg-brand px-4 text-[14px] font-semibold text-white hover:bg-brand-strong">
           Accept all
         </button>
-        <button onClick={() => choose("essential")} className="inline-flex h-10 items-center rounded-full px-5 text-[14px] font-semibold text-ink ring-1 ring-inset ring-line-strong hover:bg-paper">
+        <button
+          onClick={() => choose("essential")}
+          className="inline-flex h-10 items-center rounded-[6px] border border-[#8792a6] bg-white px-4 text-[14px] font-semibold text-ink hover:border-ink"
+        >
           Essential only
         </button>
       </div>

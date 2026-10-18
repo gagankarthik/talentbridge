@@ -10,57 +10,77 @@ interface OverlayProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   children: React.ReactNode;
+  /** Right-aligned actions; for a left "help" link plus actions, pass a justify-between row. */
   footer?: React.ReactNode;
+  /** Tailwind max-width class, e.g. "max-w-[560px]" */
   width?: string;
+  /** Sheet only: a small icon shown before the title in the 56px header strip */
+  icon?: React.ReactNode;
 }
 
-/** Right-hand drawer for record detail and multi-step flows. */
-export function Sheet({ open, onOpenChange, title, description, children, footer, width = "max-w-[640px]" }: OverlayProps) {
+const closeBtn =
+  "grid size-[30px] shrink-0 place-items-center rounded-full text-subtle transition-colors duration-150 ease-power3-out hover:bg-well hover:text-ink";
+
+/**
+ * Right-hand drawer for record detail and multi-step flows (reference anatomy):
+ * a 56px header strip, a scrolling body built from DetailSection blocks, and a
+ * 62px footer strip. Full height, hairline left edge, slides in from the right.
+ */
+export function Sheet({ open, onOpenChange, title, description, children, footer, width = "max-w-[560px]", icon }: OverlayProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="anim-fade fixed inset-0 z-40 bg-ink/30" />
+        <Dialog.Overlay className="anim-fade fixed inset-0 z-40 bg-ink/25" />
         <Dialog.Content
           className={cn(
-            "anim-sheet fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-surface shadow-[-24px_0_48px_-24px_rgb(15_23_42/0.25)] outline-none sm:inset-y-2 sm:right-2 sm:rounded-sheet sm:ring-1 sm:ring-line",
+            "app anim-sheet-right fixed inset-y-0 right-0 z-50 flex h-dvh w-full flex-col bg-surface shadow-overlay outline-none",
             width,
           )}
         >
-          <header className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
-            <div className="min-w-0">
-              <Dialog.Title className="text-[15px] font-semibold text-ink">{title}</Dialog.Title>
-              {description && <Dialog.Description className="mt-0.5 text-sm text-subtle">{description}</Dialog.Description>}
+          <header className="flex min-h-14 shrink-0 items-center justify-between gap-4 border-b border-hair px-6 py-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {icon && <span className="shrink-0 text-subtle">{icon}</span>}
+              <div className="min-w-0">
+                <Dialog.Title className="truncate text-[15px] font-semibold text-ink">{title}</Dialog.Title>
+                {description && <Dialog.Description className="mt-0.5 text-[13px] text-subtle">{description}</Dialog.Description>}
+              </div>
             </div>
-            <Dialog.Close className="-mr-2 rounded-ctl p-1.5 text-subtle hover:bg-placed-bg hover:text-ink" aria-label="Close">
-              <IconX />
+            <Dialog.Close className={cn(closeBtn, "-mr-2")} aria-label="Close">
+              <IconX size={16} />
             </Dialog.Close>
           </header>
           <div className="scroll-thin min-h-0 flex-1 overflow-y-auto">{children}</div>
-          {footer && <footer className="border-t border-line bg-canvas/60 px-6 py-3 sm:rounded-b-sheet">{footer}</footer>}
+          {footer && <footer className="flex min-h-[62px] shrink-0 items-center gap-2 border-t border-hair px-6 py-3">{footer}</footer>}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
   );
 }
 
-/** Centered confirmation / short form. */
-export function Modal({ open, onOpenChange, title, description, children, footer, width = "max-w-[460px]" }: OverlayProps) {
+/**
+ * Centred confirmation or short form (reference anatomy): bordered header with
+ * title and description, padded body, bordered footer with right-aligned actions.
+ */
+export function Modal({ open, onOpenChange, title, description, children, footer, width = "max-w-[480px]" }: OverlayProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="anim-fade fixed inset-0 z-[60] bg-ink/40" />
+        <Dialog.Overlay className="anim-fade fixed inset-0 z-[60] bg-ink/35 backdrop-blur-[2px]" />
         <Dialog.Content
           className={cn(
-            "anim-dialog fixed top-1/2 left-1/2 z-[70] w-[calc(100%-32px)] -translate-x-1/2 -translate-y-1/2 rounded-panel bg-surface shadow-xl ring-1 ring-line outline-none",
+            "app anim-dialog fixed top-1/2 left-1/2 z-[70] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-32px)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-surface shadow-overlay outline-none",
             width,
           )}
         >
-          <div className="px-6 pt-5">
-            <Dialog.Title className="text-[15px] font-semibold text-ink">{title}</Dialog.Title>
-            {description && <Dialog.Description className="mt-1 text-sm text-muted">{description}</Dialog.Description>}
+          <div className="relative shrink-0 border-b border-hair px-6 py-5 pr-14">
+            <Dialog.Title className="text-[16px] font-semibold text-ink">{title}</Dialog.Title>
+            {description && <Dialog.Description className="mt-1.5 text-[13.5px] leading-snug text-muted">{description}</Dialog.Description>}
+            <Dialog.Close className={cn(closeBtn, "absolute top-4 right-4")} aria-label="Close">
+              <IconX size={16} />
+            </Dialog.Close>
           </div>
-          <div className="px-6 py-4">{children}</div>
-          {footer && <div className="flex justify-end gap-2 border-t border-line px-6 py-3">{footer}</div>}
+          <div className="scroll-thin min-h-0 overflow-y-auto px-6 py-5">{children}</div>
+          {footer && <div className="flex shrink-0 justify-end gap-2 border-t border-hair px-6 py-4">{footer}</div>}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

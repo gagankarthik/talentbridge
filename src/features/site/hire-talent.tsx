@@ -12,7 +12,7 @@ const FREE_MAIL = /@(gmail|yahoo|outlook|hotmail|icloud|aol|proton)\./i;
 function Choice<T extends string>({ label, value, onChange, options }: { label: string; value: T; onChange: (v: T) => void; options: T[] }) {
   return (
     <fieldset>
-      <legend className="text-[13px] font-medium text-ink-2">{label}</legend>
+      <legend className="text-[14px] font-medium text-ink-2">{label}</legend>
       <div className="mt-1.5 flex flex-wrap gap-2">
         {options.map((o) => (
           <button
@@ -21,8 +21,8 @@ function Choice<T extends string>({ label, value, onChange, options }: { label: 
             aria-pressed={value === o}
             onClick={() => onChange(o)}
             className={cn(
-              "h-10 rounded-full px-4 text-[14px] ring-1 ring-inset transition-colors",
-              value === o ? "bg-brand-wash font-medium text-brand-strong ring-brand" : "text-ink-2 ring-line-strong hover:bg-canvas",
+              "h-11 rounded-[6px] px-4 text-[15px] ring-1 ring-inset transition-colors",
+              value === o ? "bg-brand-wash font-medium text-brand-strong ring-brand" : "text-ink-2 ring-[#8792a6] hover:bg-canvas",
             )}
           >
             {o}
@@ -34,11 +34,22 @@ function Choice<T extends string>({ label, value, onChange, options }: { label: 
 }
 
 /** Hiring enquiry. Demo build: validates and confirms locally; nothing is sent. */
-export function HireTalentForm({ onDone, compact, initialWho = "Enterprise" }: { onDone?: () => void; compact?: boolean; initialWho?: "Enterprise" | "Staffing agency" }) {
+export function HireTalentForm({
+  onDone,
+  compact,
+  initialWho = "Enterprise",
+  initialRoles = "",
+}: {
+  onDone?: () => void;
+  compact?: boolean;
+  initialWho?: "Enterprise" | "Staffing agency";
+  /** Prefills the roles field, e.g. from a blind profile the visitor requested */
+  initialRoles?: string;
+}) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
-  const [roles, setRoles] = useState("");
+  const [roles, setRoles] = useState(initialRoles);
   const [rate, setRate] = useState("Not sure yet");
   const [who, setWho] = useState<"Enterprise" | "Staffing agency">(initialWho);
   const [model, setModel] = useState<"Contract" | "Contract-to-hire" | "Delivery team">("Contract");
@@ -111,7 +122,7 @@ export function HireTalentForm({ onDone, compact, initialWho = "Enterprise" }: {
         </Field>
       </div>
       {!compact && <Choice label="Engagement type" value={model} onChange={setModel} options={["Contract", "Contract-to-hire", "Delivery team"]} />}
-      <Button type="submit" variant="primary" size="lg" className="h-12 w-full rounded-full text-[15px] font-semibold">
+      <Button type="submit" variant="primary" size="lg" className="h-12 w-full rounded-[6px] text-[16px] font-semibold">
         Send hiring request
       </Button>
       <p className="text-center text-xs text-subtle">

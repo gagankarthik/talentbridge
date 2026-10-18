@@ -69,7 +69,7 @@ export function LockDialog({ c, open, onOpenChange }: { c: BlindCandidate; open:
         }}
       >
         {stale && (
-          <p className="flex gap-2 rounded-ctl bg-flag-bg p-3 text-[13px] text-flag-ink">
+          <p className="flex gap-2 rounded-lg border border-tag-red-border bg-tag-red-bg p-3 text-[13px] text-tag-red-text">
             <IconAlert size={16} className="mt-px shrink-0" />
             Availability was last confirmed {freshnessDays(c.lastVerifiedAt)} days ago. Locks open again once the consultant re-confirms.
           </p>
@@ -91,14 +91,14 @@ export function LockDialog({ c, open, onOpenChange }: { c: BlindCandidate; open:
           hint={
             <span className="tnum">
               Candidate C2C floor {usd.format(c.rateC2C)}/hr.{" "}
-              {spread > 0 && <span className="text-avail-ink">Spread {usd.format(spread)}/hr.</span>}
+              {spread > 0 && <span className="font-medium text-cobalt">Spread {usd.format(spread)}/hr.</span>}
             </span>
           }
         >
           <Input id="lock-rate" type="number" inputMode="numeric" min={c.rateC2C} value={rate} onChange={(e) => setRate(e.target.value)} className="tnum" />
         </Field>
         {error && (
-          <p role="alert" className="flex gap-2 rounded-ctl bg-flag-bg p-3 text-[13px] text-flag-ink">
+          <p role="alert" className="flex gap-2 rounded-lg border border-tag-red-border bg-tag-red-bg p-3 text-[13px] text-tag-red-text">
             <IconAlert size={16} className="mt-px shrink-0" />
             {error}
           </p>
